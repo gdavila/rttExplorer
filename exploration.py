@@ -16,6 +16,7 @@ import json
 import socket
 import time
 import defaults
+import os
 
 
 def tbFormater(tb):
@@ -43,30 +44,50 @@ class exploration():
     ID = 0
 
     
-    def __init__(self, TARGET, SPORT = defaults.exploration.sport , DPORT = defaults.exploration.dport, METHOD = defaults.exploration.method):
-        self.duration = 5  #minutes
-        self.refreshPathTime = 1 #minutes
-        self.refreshRttTime = 1  #second
+    def __init__(self, TARGET, 
+                 SPORT = defaults.exploration.sport , 
+                 DPORT = defaults.exploration.dport, 
+                 METHOD = defaults.exploration.method,
+                 OUTFILE = defaults.scamper.monitorname,
+                 PATH_INTERVAL = 1,
+                 RTT_INTERVAL = 1,
+                 EXPLORATION_TIME = 5):
+        
         self.target = TARGET
         self.sport =  str(int(SPORT) + exploration.ID)
         self.dport = DPORT
         self.method =  METHOD
-        exploration.ID += exploration.ID 
-
+        exploration.ID += 1
+        self.outFile = OUTFILE + '.json'
+        self.refreshPathTime = PATH_INTERVAL  #minutes
+        self.refreshRttTime = RTT_INTERVAL  #second
+        self.duration = EXPLORATION_TIME  #minutes
+        self.folder = os.path.dirname(os.path.abspath(__file__))+'/results'
+        self.rttFileName = self.folder + '/rtt_' + self.outFile
+        self.pathFileName = self.folder + '/path_' + self.outFile
+        self.iniFile()
+        
+    def iniFile(self):
+        try:
+            if exploration.ID == 0: 
+                os.remove(self.rttFileName) 
+                os.remove(self.pathFileName)
+        except FileNotFoundError:
+            pass
     
     def pathDiscovery(self):
-        print('discovering path...')
         self.tb = tracebox.tracebox(self.target)
         self.tb.sport(self.sport)
         self.tb.dport(self.dport)
         self.tb.method(self.method)
         self.tb.run()
         self.path = tbFormater(self.tb)
-
+        with open(self.pathFileName, 'a') as f:
+            f.write(json.dumps(self.path)+'\n')
+            
 
     
     def rttMeasurement(self):
-        print('measuring rtt...')
         self.sc = scamper.scamper()
         for hop in self.path['Hops']:
             if hop['from'] == '*': continue
@@ -84,10 +105,9 @@ class exploration():
         self.rttMeas = []
         for meassurement in meassurements:
             self.rttMeas.append (json.loads(meassurement))
+            with open(self.rttFileName, 'a') as f:
+                f.write(meassurement+'\n')
         
-        print (self.rttMeas)
-
-
     
     def run(self):
         self.pathDiscovery()

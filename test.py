@@ -1,38 +1,36 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+"""
+CoNexDat
+    Grupo de investigación de redes complejas y comunicación de datos
+    Facultad de Ingenieria 
+    Universidad de Buenos Aires, Argentina
 
+@author: Gabriel Davila Revelo
+"""
 
+import exploration
+import schedule
+import signal
+import sys
 
-#path= pathDiscovery('200.45.32.4')
-#rttMeas= rttMeasurement(path)
+        
+def signal_handler(signal, frame):
+    print('You pressed Ctrl+C!')
+    schedule.clear()
+    sys.exit(0)
 
-#print (rttMeas)
-#sc= scamper.scamper()
+def main():
 
-#sc.newTraceProbe('200.45.32.4')
-#sc.probe.firsthop='7'
-#sc.probe.maxttl='7'
-#sc.commitProbe()
-#sc.newPingProbe('8.8.8.8')
-#sc.commitProbe()
-#stdout,stderr =sc.run()
-#print (stdout, stderr)
-#stdout = stdout.decode("utf-8", "strict")
-#stderr = stderr.decode("utf-8", "strict")
-#if stdout.split('\n') != [] : stdout=stdout.split('\n')[1:len(stdout.split('\n'))-2]
-#else:  stdout=stdout.split('\n')
-#print (stdout)
+    targets = ['200.45.32.4']    
+    
+    signal.signal(signal.SIGINT, signal_handler)
+    
+    for target in targets:
+        explorer = exploration.exploration(target)
+        explorer.run()
+    
 
-
-
-
-#tb= tracebox.tracebox('200.45.32.4')
-#tb.hops_min='7'
-#tb.run()
-#stdout = tbFormater(tb)
-#print (stdout)
-
-
-
-
+    
+main()

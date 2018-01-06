@@ -113,13 +113,16 @@ class scamper():
                                  scamper.cmdsArg, self.command,
                                  ])         
         
-        #print (self.command)
+
         process = Popen(self.cmdList, stdout=PIPE, stderr=PIPE)
         self.date = time.strftime("%D %H:%M:%S +0000", time.gmtime())
         process.wait()
         self.stdout, self.stderr = process.communicate()
+
         
-        if self.stderr: raise runError(self.stderr, self.command)
+        if self.stderr:
+            self.stderr =  self.stderr.decode("utf-8", "strict").splitlines()[0]
+            raise runError(self.stderr)
         
         if  outfile != None:
             with open(outfile, 'ab') as file:

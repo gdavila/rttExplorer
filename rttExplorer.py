@@ -36,7 +36,7 @@ def get_args():
     return parser.parse_args()
 
 
-def rttmeas(target, srcPort, dstPort, method, outFile, pathInterval, rttInterval,explorationTime):
+def rttExplorer(target, srcPort, dstPort, method, outFile, pathInterval, rttInterval,explorationTime):
         probe = exploration.exploration(TARGET = target, 
                      SPORT = srcPort , 
                      DPORT =  dstPort, 
@@ -68,10 +68,10 @@ if __name__ == '__main__':
     else:
         with open(inputTargetFile ) as file:
             targets = file.readlines()
-    targets = [x.strip() for x in targets] 
+    targets = [x.strip() for x in targets]
     
     for target in targets:
-        t = threading.Thread(target = rttmeas, args = (  target, 
+        t = threading.Thread(target = rttExplorer, args = (  target, 
                                                          srcPort , 
                                                          dstPort, 
                                                          method,

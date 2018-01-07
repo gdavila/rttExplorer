@@ -86,20 +86,17 @@ class exploration():
         exploration.ID += 1
     
     def iniLogger(self):
-
         logging.basicConfig(level=logging.INFO, 
                             filename=self.logFileName,
                             format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s")
         self.logger = logging.getLogger()
-        self.logger.info("<Exploration ID{} >".format(self.ID) + " START")
+        self.logger.info("<Exploration ID{}> ".format(self.ID) + " START")
         
     def iniFile(self):
         if exploration.ID == 0: 
             try: os.remove(self.rttFileName) 
             except FileNotFoundError:pass
             try: os.remove(self.pathFileName) 
-            except FileNotFoundError:pass
-            try: os.remove(self.logFileName) 
             except FileNotFoundError:pass
 
 
@@ -132,14 +129,14 @@ class exploration():
             self.tb.run()
         except tracebox.runError as e:
             if not (self.pathDiscError):
-                self.logger.error("<Exploration ID{} >".format(self.ID) + '[tracebox]'+ str(e))
-                self.logger.info("<Exploration ID{} >".format(self.ID)  + 'Internet Paths lost. RTT Measurements stoped')  
+                self.logger.error("<Exploration ID{}> ".format(self.ID) + '[tracebox]'+ str(e))
+                self.logger.info("<Exploration ID{}> ".format(self.ID)  + 'Internet Paths lost. RTT Measurements stoped')  
             self.path = {}
             self.pathDiscError = True
             return
         
         if self.pathDiscError:
-            self.logger.info("<Exploration ID{} >".format(self.ID) + 'Internet Paths recovered. RTT Measurements restarted')
+            self.logger.info("<Exploration ID{}> ".format(self.ID) + 'Internet Paths recovered. RTT Measurements restarted')
             self.pathDiscError = False
         self.path = tbFormater(self.tb)
         with open(self.pathFileName, 'a') as f:
@@ -163,14 +160,14 @@ class exploration():
         except scamper.runError as e:
             #print ('error rtt', self.rttMeasError)
             if not(self.rttMeasError): 
-                self.logger.error("<Exploration ID{} >".format(self.ID) + '[scamper]'+ str(e))
-                self.logger.info("<Exploration ID{} >".format(self.ID) + 'RTT Measurements lost. Triying again.')
+                self.logger.error("<Exploration ID{}> ".format(self.ID) + '[scamper]'+ str(e))
+                self.logger.info("<Exploration ID{}> ".format(self.ID) + 'RTT Measurements lost. Triying again.')
             self.rttMeas = []
             self.rttMeasError = True
             return
         
         if self.rttMeasError: 
-            self.logger.info("<Exploration ID{} >".format(self.ID) + "RTT Measurements restarted")
+            self.logger.info("<Exploration ID{}> ".format(self.ID) + "RTT Measurements restarted")
             self.rttMeasError = False
         
         meassurements = self.sc.stdout.decode("utf-8", "strict")
@@ -210,7 +207,7 @@ class exploration():
                 continue
                 
             #    continue
-        self.logger.info("<Exploration ID{} >".format(self.ID) + "FINISH")
+        self.logger.info("<Exploration ID{}> ".format(self.ID) + "FINISH")
 
         
     def isPending(self):

@@ -14,6 +14,10 @@ import exploration
 import defaults
 import threading
 import time
+import pymongo
+import json
+import os
+import logging
 
 def get_args():
     '''This function parses and return arguments passed in'''
@@ -50,7 +54,24 @@ def rttExplorer(target, srcPort, dstPort, method, outFile, pathInterval, rttInte
                      MIN_TTL = minTTL,
                      MAX_TTL = maxTTL) 
         probe.run()
-  
+
+
+ 
+
+def uploadColletion(collection, srcFile):
+    with open(srcFile) as file:
+        data = []
+        maxLines = 10000
+        counter =0
+        for line in file:
+            counter+=1
+            data.append(json.loads(line))
+            if counter == maxLines:
+                collection.insert_many(data)
+                counter=0
+                data=[]
+        if data: collection.insert_many(data)
+    return 
 
 if __name__ == '__main__':
     
@@ -68,7 +89,18 @@ if __name__ == '__main__':
     outFile = cmdParser.o
     targets = []
     
-    
+    folderLogs = os.path.dirname(os.path.abspath(__file__))+'/logs/'
+    logFile = folderLogs + outFile + '.log'
+    try: os.remove(logFile) 
+    except FileNotFoundError:pass
+
+    logging.basicConfig(level=logging.INFO, 
+                        filename=logFile,
+                        format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+    logger = logging.getLogger()
+    logger.info("<rttExplorer> START")
+        
+        
     if inputTargetFile == None:
         targets.append(ipTarget)
     else:
@@ -89,3 +121,33 @@ if __name__ == '__main__':
                                                          maxTTL,))
         time.sleep(0.1)
         t.start()
+
+    while (t.isAlive()):
+        time.sleep(1)
+        
+    logger.info("<rttExplorer> FINISH")
+    
+    folderResults = os.path.dirname(os.path.abspath(__file__))+'/results/'
+    rttFile = folderResults + 'rtt_' + outFile + '.json'
+    pathFile = folderResults + 'path_' + outFile + '.json'
+    
+    logger.info("<MongoDB> Start Uploading data")
+    uri_mongodb='mongodb://conexdat:1405871@ds163656.mlab.com:63656/conexdat'
+    client = pymongo.MongoClient(uri_mongodb)
+    db = client.conexdat
+    collection = db.rtt
+
+    try:
+        uploadColletion(collection, rttFile)
+    except Exception as e:
+        logger.info("<MongoDB> "+e)
+    
+    collection = db.path
+    try:
+        uploadColletion(collection, pathFile)
+    except Exception as e:
+        logger.info("<MongoDB> "+e)
+        
+    logger.info("<MongoDB> Data Uploaded")
+        
+    

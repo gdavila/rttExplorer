@@ -26,7 +26,7 @@ def get_args():
     parserReq.add_argument('-t', metavar = 'explorationTime', help = 'Duration time of the exploration (minutes)', type = int, required = True)
 
     parserOPt = parser.add_argument_group('optional arguments:')
-    parserOPt.add_argument('-D', metavar = 'pathInterval', help = 'time interval between path discovery probes (minutes). Default is 5',type = int, default = 2)
+    parserOPt.add_argument('-D', metavar = 'pathInterval', help = 'time interval between path discovery probes (minutes). Default is 5',type = int, default = 5)
     parserOPt.add_argument('-T', metavar = 'rttInterval', help = 'time interval between rtt measurement probes (seconds). Default is 1', type = int, default = 1)
     parserOPt.add_argument('-m', metavar = 'method', type = str, help = 'UDP or TCP-ACK. Default is UDP', choices =  ['UDP', 'TCP-ACK'], default = 'UDP')
     parserOPt.add_argument('-d', metavar = 'dstPort',type = str, help = 'destination Port. Default is 44444', default = '44444')

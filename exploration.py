@@ -26,7 +26,7 @@ def tbFormater(tb):
     jsonPath['dst'] = tb.IPtarget
     jsonPath['src'] = get_localip_address()
     jsonPath['sport'] = tb.probe.protocol.sport
-    jsonPath['dport'] = tb.probe.protocol.sport
+    jsonPath['dport'] = tb.probe.protocol.dport
     jsonPath['start'] = tb.start
     jsonPath['date'] = tb.date
     return jsonPath
@@ -57,7 +57,9 @@ class exploration():
                  OUTFILE = defaults.scamper.monitorname,
                  PATH_INTERVAL = 1,
                  RTT_INTERVAL = 1,
-                 EXPLORATION_TIME = 5):
+                 EXPLORATION_TIME = 5,
+                 MIN_TTL = '1',
+                 MAX_TTL = '20'):
         
         #print ("<Exploration ID{} >".format(exploration.ID))
         self.ID = exploration.ID
@@ -66,6 +68,8 @@ class exploration():
         self.checkSrcPort()
         self.dport = DPORT
         self.method =  METHOD
+        self.minRTT = MIN_TTL
+        self.maxRTT = MAX_TTL
         self.outFile = OUTFILE + '.json'
         self.refreshPathTime = PATH_INTERVAL  #minutes
         self.refreshRttTime = RTT_INTERVAL  #second
@@ -119,6 +123,8 @@ class exploration():
             
     def pathDiscovery(self):
         self.tb = tracebox.tracebox(self.target)
+        self.tb.hops_min = self.minRTT
+        self.tb.hops_max = self.maxRTT
         self.tb.sport(self.sport)
         self.tb.dport(self.dport)
         self.tb.method(self.method)

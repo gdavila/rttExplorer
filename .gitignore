@@ -1,0 +1,6 @@
+*.json
+**.json
+*.log
+**.log
+/__pycache__
+__pycache__

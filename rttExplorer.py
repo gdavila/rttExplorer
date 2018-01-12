@@ -119,12 +119,13 @@ if __name__ == '__main__':
                                                          explorationTime,
                                                          minTTL,
                                                          maxTTL,))
-        time.sleep(0.1)
+        time.sleep(1)
         t.start()
 
     while (t.isAlive()):
         time.sleep(1)
-        
+    
+    time.sleep(5)
     logger.info("<rttExplorer> FINISH")
     
     folderResults = os.path.dirname(os.path.abspath(__file__))+'/results/'

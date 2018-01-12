@@ -125,6 +125,7 @@ class exploration():
         self.tb.sport(self.sport)
         self.tb.dport(self.dport)
         self.tb.method(self.method)
+        time.sleep(5)
         try:
             self.tb.run()
         except tracebox.runError as e:
@@ -151,7 +152,9 @@ class exploration():
             self.sc.newTraceProbe(self.target)
             self.sc.probe.sport = self.sport
             self.sc.probe.dport = self.dport
-            self.sc.probe.method = self.method
+            if self.method == 'UDP': 
+                self.sc.probe.method = 'UDP-PARIS'
+            else: self.sc.probe.method = self.method
             self.sc.probe.firsthop= str(hop['hop'])
             self.sc.probe.maxttl= str(hop['hop'])
             self.sc.commitProbe()
@@ -198,7 +201,6 @@ class exploration():
                     
             except KeyError:
                 """ no path discovered yet. TRY TO DISCOVER AGAIN"""
-                time.sleep(1)
                 self.pathDiscovery()
                 continue
 

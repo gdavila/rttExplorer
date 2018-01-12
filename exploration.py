@@ -122,9 +122,9 @@ class exploration():
         self.tb = tracebox.tracebox(self.target)
         self.tb.hops_min = self.minRTT
         self.tb.hops_max = self.maxRTT
+        self.tb.method(self.method)
         self.tb.sport(self.sport)
         self.tb.dport(self.dport)
-        self.tb.method(self.method)
         time.sleep(5)
         try:
             self.tb.run()

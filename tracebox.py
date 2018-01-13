@@ -184,17 +184,19 @@ class tcp:
                           'dst =', self.dport, ',',
                           '}',])
 class ip:
-    layerId = 'ip'
+    layerId = 'IP'
     def __init__(self):
+        #not used because it fails in linux
         self.dscp = str(0) #ToS
         self.ecn = str(0) #ToS
     
     def getPckt(self):
         return ' '.join([ ip.layerId ,
-                         '{',
-                          'dscp =', self.dscp, ',',
-                          'ecn =', self.ecn, ',',
-                          '}',])
+                         #'{',
+                         #'dscp =', self.dscp, ',',
+                         #'ecn =', self.ecn, ',',
+                         #'}',
+                        ])
         
         
         

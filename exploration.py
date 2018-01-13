@@ -125,7 +125,7 @@ class exploration():
         self.tb.method(self.method)
         self.tb.sport(self.sport)
         self.tb.dport(self.dport)
-        time.sleep(5)
+        time.sleep(1)
         try:
             self.tb.run()
         except tracebox.runError as e:

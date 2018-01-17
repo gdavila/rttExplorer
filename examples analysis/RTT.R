@@ -1,8 +1,8 @@
 "
 CoNexDat
-    Grupo de investigación de redes complejas y comunicación de datos
-    Facultad de Ingenieria 
-    Universidad de Buenos Aires, Argentina
+Grupo de investigación de redes complejas y comunicación de datos
+Facultad de Ingenieria 
+Universidad de Buenos Aires, Argentina
 
 @author: Gabriel Davila Revelo
 "
@@ -40,37 +40,53 @@ rtt_density<-function(rtt_list){
 
 require ("mongolite")
 
-# mongoDB connector
+# ---- mongoDB connector PATH----
 rttExplorer <-  mongo( collection = 'path',
-              db = 'conexdat',
-              url = 'mongodb://conexdat:1405871@ds163656.mlab.com:63656/conexdat'
-          )
+                       db = 'conexdat',
+                       url = 'mongodb://conexdat:1405871@ds163656.mlab.com:63656/conexdat'
+)
 
 # mongoDB queries
-
+# ---- IPsrc and IPdst List ----
 query <- rttExplorer$aggregate('[
                                { "$group" : { "_id" : {"src": "$src", "dst": "$dst"} } }
                                ]')
 print(query$`_id`$dst)
 
 
+query <- rttExplorer$find ( query = '{ "dst": "81.200.198.6"}',
+                            fields = '{ "Hops.ICMPExtensions.ICMPExtensionMPLS" : true, "Hops.from" : true, "Hops.hop" : true, "start.sec": true, "_id" : false}',
+                            limit = 1000
+)
+
+paths <- query
+
+for (i in 1: nrow(paths$start)){
+  paths
+}
+
+# ---- Different Paths ----
 
 query <- rttExplorer$aggregate('[
-                                { "$match" : { "dst" : "8.8.8.8", "Hops.hop": 1} },
-                                { "$project" : { "Hops.hop": 1,  "_id" : 0 } },
-                                { "$group" : { "_id" : "$Hops.from" } }
+                               { "$match" : { "dst" : "81.200.198.6"} },
+                               { "$project" : { "Hops.from": 1,  "_id" : 0 } },
+                               { "$group" : { "_id" : "$Hops.from" } }
                                ]')
 
+print(c('Paths: ', length(query$`_id`)))
+View(as.data.frame(query$`_id`))
 
 
-query <- rttExplorer$aggregate('[
-                               { "$match" : { "dst" : "8.8.8.8"} },
-                               { "$project" : { "Hops.from": 1,  "Hops.hop": 1,  "_id" : 0 } }
-                               ]')
+# ---- mongoDB connector RTT----
+rttExplorer <-  mongo( collection = 'path',
+                       db = 'conexdat',
+                       url = 'mongodb://conexdat:1405871@ds163656.mlab.com:63656/conexdat'
+)
 
+# ---- RTT ----
 
-query <- rttExplorer$find ( query = '{ "Hops.from": "192.168.0.1" , "Hops.hop": 4}',
-                            fields = '{ "Hops.from" : true, "_id" : false}',
-                            limit = 10
+query <- rttExplorer$find ( query = '{ "dst": "138.96.112.60" }',
+                            fields = '{ "Hops.delay" : true, "_id" : false}',
+                            limit = 1000
                             )
-
+print(query)

@@ -64,7 +64,7 @@ print(query$`_id`$dst)
 
 
 # ---- Hops, IP, MPLS labels ----
-query <- rttExplorer$find ( query = '{ "dst": "81.200.198.6"}',
+query <- pathCollection$find ( query = '{ "dst": "81.200.198.6"}',
                             fields = '{ "Hops.ICMPExtensions.ICMPExtensionMPLS" : true, "Hops.from" : true, "Hops.hop" : true, "start.sec": true, "_id" : false}',
                             limit = 1000
 )
@@ -77,8 +77,8 @@ changePath <- c()
 for (i in 2: nrow(Paths$start)){
   if (!all(Paths$Hops[[i]][['from']][2:17] == Paths$Hops[[i-1]][['from']][2:17])){
     changePathTimes <- append(changePathTimes,Paths$start[['sec']][i])
-    changePath <- append(changePath,Paths$Hops[[i]]['from'])
-    print (Paths$Hops[[i]][['from']])
+    changePath <- append(changePath,list(Paths$Hops[[i]]['from']$from))
+    #print (Paths$Hops[[i]][['from']])
   }
 }
 

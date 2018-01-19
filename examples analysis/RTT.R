@@ -103,8 +103,12 @@ query <- rttExplorer$find ( query = '{ "dst": "81.200.198.6", "hops.addr": "200.
 
 
 #ordernar query$hops
-rtt <-as.numeric(unlist(query$hops))
-rttDensity <- rtt_density(rtt)
+rtt <-  apply(query, 1,unlist)
+rtt  <-  t(rtt)
+rtt <- as.data.frame(rtt)
+
+rttMeas <-sort(as.numeric(rtt$hops.rtt))
+rttDensity <- rtt_density(rttMeas)
 
 ggplot()+
   geom_line(data=rttDensity , aes(x=mids, y=counts), color="gray")+
@@ -113,5 +117,5 @@ ggplot()+
   #ggtitle(paste0('DESTINO: ',dest, '\n', 'HOP: ' ,address))
 
 ggplot()+
-  geom_point(data=as.data.frame(rtt), aes(x=sec, y=rtt), color="gray")
+  geom_point(data=rtt, aes(x=hops.tx.sec, y=hops.rtt), color="gray")
   #ggtitle(paste0('DESTINO: ',dest, '\n', 'HOP: ' ,address))

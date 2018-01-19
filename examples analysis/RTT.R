@@ -44,14 +44,20 @@ rtt_density<-function(rtt_list){
 require ("mongolite")
 
 # ---- mongoDB connector PATH----
-rttExplorer <-  mongo( collection = 'path',
+pathCollection <-  mongo( collection = 'path',
+                       db = 'conexdat',
+                       url = 'mongodb://conexdat:1405871@ds163656.mlab.com:63656/conexdat'
+)
+
+# ---- mongoDB connector RTT----
+rttCollection <-  mongo( collection = 'rtt',
                        db = 'conexdat',
                        url = 'mongodb://conexdat:1405871@ds163656.mlab.com:63656/conexdat'
 )
 
 # mongoDB queries
 # ---- IPsrc and IPdst List ----
-query <- rttExplorer$aggregate('[
+query <- pathCollection$aggregate('[
                                { "$group" : { "_id" : {"src": "$src", "dst": "$dst"} } }
                                ]')
 print(query$`_id`$dst)
@@ -88,15 +94,10 @@ print(c('Paths: ', length(query$`_id`)))
 View(as.data.frame(query$`_id`))
 
 
-# ---- mongoDB connector RTT----
-rttExplorer <-  mongo( collection = 'rtt',
-                       db = 'conexdat',
-                       url = 'mongodb://conexdat:1405871@ds163656.mlab.com:63656/conexdat'
-)
 
 # ---- RTT ----
 
-query <- rttExplorer$find ( query = '{ "dst": "81.200.198.6", "hops.addr": "200.89.160.25", "start.sec": {"$gt": 1515829787 , "$lt": 1515831599  }}',
+query <- rttCollection$find ( query = '{ "dst": "81.200.198.6", "hops.addr": "200.89.160.25", "start.sec": {"$gt": 1515829787 , "$lt": 1515831599  }}',
                             fields = '{ "hops.rtt" : true, "hops.tx.sec":true, "_id" : false}',
                             sort = '{"hops.rtt" : 1}'
                           )

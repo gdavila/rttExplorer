@@ -23,15 +23,18 @@ rtt_density<-function(rtt_list){
   for (i in seq(n,length(rtt_list), by=n)){
     bins<-append(bins,rtt_list[i])
   }
+  print("bins")
   if (bins[length(bins)]!=rtt_list[length(rtt_list)]) {
     bins<-append(bins,rtt_list[length(rtt_list)])
   }
-  
+  print(bins)
   for (i in seq(2,length(bins), by=1)){
+    print (i)
     delta<-append(delta, bins[i]-bins[i-1] )
   }
-  
+  print (delta)
   h <- hist(rtt_list, breaks = bins, plot=FALSE)
+  print(h)
   h$counts=1/(sum(h$counts)*delta)
   rtt=data.frame(mids=h$mids, counts=h$counts)
   return(rtt)
@@ -54,15 +57,23 @@ query <- rttExplorer$aggregate('[
 print(query$`_id`$dst)
 
 
+# ---- Hops, IP, MPLS labels ----
 query <- rttExplorer$find ( query = '{ "dst": "81.200.198.6"}',
                             fields = '{ "Hops.ICMPExtensions.ICMPExtensionMPLS" : true, "Hops.from" : true, "Hops.hop" : true, "start.sec": true, "_id" : false}',
                             limit = 1000
 )
 
-paths <- query
+Paths <- query
 
-for (i in 1: nrow(paths$start)){
-  paths
+# ---- Hops, IP, MPLS labels ----
+changePathTimes<- c()
+changePath <- c()
+for (i in 2: nrow(Paths$start)){
+  if (!all(Paths$Hops[[i]][['from']][2:17] == Paths$Hops[[i-1]][['from']][2:17])){
+    changePathTimes <- append(changePathTimes,Paths$start[['sec']][i])
+    changePath <- append(changePath,Paths$Hops[[i]]['from'])
+    print (Paths$Hops[[i]][['from']])
+  }
 }
 
 # ---- Different Paths ----
@@ -78,15 +89,29 @@ View(as.data.frame(query$`_id`))
 
 
 # ---- mongoDB connector RTT----
-rttExplorer <-  mongo( collection = 'path',
+rttExplorer <-  mongo( collection = 'rtt',
                        db = 'conexdat',
                        url = 'mongodb://conexdat:1405871@ds163656.mlab.com:63656/conexdat'
 )
 
 # ---- RTT ----
 
-query <- rttExplorer$find ( query = '{ "dst": "138.96.112.60" }',
-                            fields = '{ "Hops.delay" : true, "_id" : false}',
-                            limit = 1000
-                            )
-print(query)
+query <- rttExplorer$find ( query = '{ "dst": "81.200.198.6", "hops.addr": "200.89.160.25", "start.sec": {"$gt": 1515829787 , "$lt": 1515831599  }}',
+                            fields = '{ "hops.rtt" : true, "hops.tx.sec":true, "_id" : false}',
+                            sort = '{"hops.rtt" : 1}'
+                          )
+
+
+#ordernar query$hops
+rtt <-as.numeric(unlist(query$hops))
+rttDensity <- rtt_density(rtt)
+
+ggplot()+
+  geom_line(data=rttDensity , aes(x=mids, y=counts), color="gray")+
+  scale_y_log10()+
+  scale_x_log10()
+  #ggtitle(paste0('DESTINO: ',dest, '\n', 'HOP: ' ,address))
+
+ggplot()+
+  geom_point(data=as.data.frame(rtt), aes(x=sec, y=rtt), color="gray")
+  #ggtitle(paste0('DESTINO: ',dest, '\n', 'HOP: ' ,address))

@@ -7,7 +7,13 @@ Universidad de Buenos Aires, Argentina
 @author: Gabriel Davila Revelo
 "
 
-require ("mongolite")
+library ("mongolite")
+library ("cowplot")
+
+
+ip_src <- '"192.168.0.126"'
+ip_dst <- '"138.96.112.60"'
+probe_ttl <- 14
 
 #---- Functions ----
 rtt_density <- function(rtt_list){
@@ -40,8 +46,8 @@ rtt_density <- function(rtt_list){
   return(rtt)
 }
 
-get_mplsInfo <- function(ICMPEsxtensionsInfo){
-  mpls_path <- ICMPEsxtensionsInfo
+get_mplsInfo <- function(ICMPExtensionsInfo){
+  mpls_path <- ICMPExtensionsInfo
   mpls_info <- c()
   for (i in 1: length(mpls_path)){
     if (is.null(mpls_path[[i]][[1]]$Info[3])) {
@@ -53,6 +59,61 @@ get_mplsInfo <- function(ICMPEsxtensionsInfo){
   return(list(mpls_info))
 }
 
+get_pathStability <- function(paths){
+  start <- c()
+  finish <- c()
+  changing_paths <- c()
+  mpls_info <- c()
+  
+  for (i in 1: nrow(paths$start)){
+    if (i==1){
+      print (c(i, paths$start[['sec']][i]))
+      start <- append(start,paths$start[['sec']][i])
+      changing_paths <- append(changing_paths,list(paths$Hops[[i]]['from']$from))
+      mpls_info <- append(mpls_info, get_mplsInfo(paths$Hops[[i]][['ICMPExtensions']]))
+    } else if (!all(paths$Hops[[i]][['from']][2:17] == paths$Hops[[i-1]][['from']][2:17]) &&
+               !all(get_mplsInfo(paths$Hops[[i]][['ICMPExtensions']][2:17])[[1]] == get_mplsInfo(paths$Hops[[i-1]][['ICMPExtensions']][2:17])[[1]])
+    ){
+      print (c(i, paths$start[['sec']][i]))
+      finish <- append(finish,paths$start[['sec']][i])
+      start <- append(start,paths$start[['sec']][i])
+      changing_paths <- append(changing_paths,list(paths$Hops[[i]]['from']$from))
+      mpls_info <- append(mpls_info, get_mplsInfo(paths$Hops[[i]][['ICMPExtensions']]))
+    }
+    if (i == nrow(paths$start)){
+      finish <- append(finish,paths$start[['sec']][i])
+    }
+  }
+  paths_stability_df <- data.frame(start)
+  paths_stability_df$finish <- finish
+  paths_stability_df$duration <- paths_stability_df$finish - paths_stability_df$start
+  paths_stability_df$paths <- changing_paths
+  paths_stability_df$mplsInfo <- mpls_info
+  return(paths_stability_df)
+}
+
+plot_rtt <- function(rtt){
+  rtt <-  t(apply(query, 1, unlist))
+  rtt <-  as.data.frame(rtt,stringsAsFactors = FALSE)
+  rtt$hops.tx.sec <- as.numeric(rtt$hops.tx.sec)
+  rtt$hops.rtt <- as.numeric(rtt$hops.rtt)
+  
+  p1 <- ggplot()+
+        geom_line(data=rtt_density(sort(rtt$hops.rtt)) , aes(x=mids, y=counts), color="gray")+
+        scale_y_log10()+
+        scale_x_log10()+
+        labs(title = paste0('Addr: ' , unique(rtt$hops.addr), ' Hop: ' , probe_ttl),
+             subtitle = paste0(ip_src , ' --> ',ip_dst ) , 
+             x = "rtt (s)", y = "density") 
+  
+  p2 <- ggplot()+
+        geom_point(data=rtt, aes(x=hops.tx.sec - min(hops.tx.sec), y=hops.rtt), color="gray") +
+        labs(title = paste0('Addr: ' , unique(rtt$hops.addr), ' Hop: ' , probe_ttl),
+             subtitle = paste0(ip_src , ' --> ',ip_dst ) , 
+             x = "time (s)", y = "rtt (s)") 
+  return(plot_grid(p1, p2, align = "h"))
+}
+  
 # ---- mongoDB connector: PATH  ----
 pathCollection <-  mongo( collection = 'path',
                        db = 'conexdat',
@@ -65,7 +126,6 @@ rttCollection <-  mongo( collection = 'rtt',
                        url = 'mongodb://conexdat:1405871@ds163656.mlab.com:63656/conexdat'
 )
 
-# mongoDB queries
 
 # ---- mongoDB query: IPsrc and IPdst List ----
 query <- pathCollection$aggregate('[
@@ -73,50 +133,32 @@ query <- pathCollection$aggregate('[
                                ]')
 
 ip_src_dst <- query 
-rm(query)
+
 
 # ---- mongoDB query: paths given a ip_src ip_dst ----
-query <- pathCollection$find ( query = '{ "dst": "81.200.198.6"}',
-                            fields = '{ "Hops.ICMPExtensions.ICMPExtensionMPLS.Info" : true, "Hops.from" : true, "Hops.hop" : true, "start.sec": true, "_id" : false}'
-                              )
+q <- paste('{ "src" : ', ip_src,', "dst" : ', ip_dst, '}')
+f <- '{ "Hops.ICMPExtensions.ICMPExtensionMPLS.Info" : true, "Hops.from" : true, "Hops.hop" : true, "start.sec": true, "_id" : false}'
+query <- pathCollection$find ( query = q, fields = f )
 paths <- query
-rm(query)
+
 # ---- R algorithim: different paths analysis ----
-start <- c()
-finish <- c()
-changing_paths <- c()
-mpls_info <- c()
+pathStability <- get_pathStability(paths )
 
-for (i in 1: nrow(paths$start)){
-  if (i==1){
-    print (c(i, paths$start[['sec']][i]))
-    start <- append(start,paths$start[['sec']][i])
-    changing_paths <- append(changing_paths,list(paths$Hops[[i]]['from']$from))
-    mpls_info <- append(mpls_info, get_mplsInfo(paths$Hops[[i]][['ICMPExtensions']]))
-  } else if (!all(paths$Hops[[i]][['from']][2:17] == paths$Hops[[i-1]][['from']][2:17]) &&
-      !all(get_mplsInfo(paths$Hops[[i]][['ICMPExtensions']][2:17])[[1]] == get_mplsInfo(paths$Hops[[i-1]][['ICMPExtensions']][2:17])[[1]])
-      ){
-    print (c(i, paths$start[['sec']][i]))
-        finish <- append(finish,paths$start[['sec']][i])
-        start <- append(start,paths$start[['sec']][i])
-        changing_paths <- append(changing_paths,list(paths$Hops[[i]]['from']$from))
-        mpls_info <- append(mpls_info, get_mplsInfo(paths$Hops[[i]][['ICMPExtensions']]))
-  }
-  if (i == nrow(paths$start)){
-    finish <- append(finish,paths$start[['sec']][i])
-  }
-}
+# ---- RTT ----
+start <- pathStability[pathStability$duration == max(pathStability$duration), 'start'] 
+finish <- pathStability[pathStability$duration == max(pathStability$duration), 'finish']
+q <- paste('{ "src" : ', ip_src, 
+           ', "dst" : ', ip_dst,  
+           ', "hops.probe_ttl" : ',  probe_ttl, 
+           ', "start.sec": {"$gt": ', start,
+           ', "$lt" : ', finish, '}',
+           '}')
+f <- '{ "hops.rtt" : true, "hops.tx.sec":true,  "hops.addr" : 1, "_id" : false}'
+s <- '{"hops.rtt" : 1}'
 
-paths_stability_df <- data.frame(start)
-paths_stability_df$finish <- finish
-paths_stability_df$duration <- paths_stability_df$finish - paths_stability_df$start
-paths_stability_df$paths <- changing_paths
-paths_stability_df$mplsInfo <- mpls_info
-
-
-rm(start)
-rm(changing_paths)
-rm(mpls_info)
+query <- rttCollection$find ( query = q, fields = f, sort = s )
+rtt <- query
+plot_rtt(rtt)
 
 
 
@@ -129,31 +171,3 @@ rm(mpls_info)
 #                               { "$group" : { "_id" : "$Hops.from" } }
 #                               ]')
 
-
-# ---- RTT ----
-
-query <- rttCollection$find ( query = '{ "dst": "81.200.198.6", "hops.probe_ttl": 6, "start.sec": {"$gt": 1515833719 , "$lt": 1515839767  }}',
-                            fields = '{ "hops.rtt" : true, "hops.tx.sec":true,  "hops.addr" : 1, "_id" : false}',
-                            sort = '{"hops.rtt" : 1}'
-                          )
-
-
-#ordernar query$hops
-rtt <-  apply(query, 1,unlist)
-rtt  <-  t(rtt)
-rtt <- as.data.frame(rtt,stringsAsFactors = FALSE)
-rtt$hops.tx.sec <- as.numeric(rtt$hops.tx.sec)
-rtt$hops.rtt <- as.numeric(rtt$hops.rtt)
-
-rttMeas <-sort(rtt$hops.rtt)
-rttDensity <- rtt_density(rttMeas)
-
-ggplot()+
-  geom_line(data=rttDensity , aes(x=mids, y=counts), color="gray")+
-  scale_y_log10()+
-  scale_x_log10()
-  #ggtitle(paste0('DESTINO: ',dest, '\n', 'HOP: ' ,address))
-
-ggplot()+
-  geom_point(data=rtt, aes(x=hops.tx.sec, y=hops.rtt), color="gray")
-  #ggtitle(paste0('DESTINO: ',dest, '\n', 'HOP: ' ,address))

@@ -19,6 +19,7 @@ import json
 import os
 import logging
 
+
 def get_args():
     '''This function parses and return arguments passed in'''
     parser = argparse.ArgumentParser(prog = 'rttmeas', description = 'script to measure the rrt along a path')
@@ -38,6 +39,7 @@ def get_args():
     parserOPt.add_argument('-d', metavar = 'dstPort',type = str, help = 'destination Port. Default is 44444', default = '44444')
     parserOPt.add_argument('-s', metavar = 'srcPort',type = str, help = 'source Port. Default is 33333', default = '33333')
     parserOPt.add_argument('-o', metavar = 'outFile', type = str, help = 'File name to save the results', default = defaults.scamper.monitorname)
+    parserOPt.add_argument('--mongodb', help = 'upload the results in a mongoDB. See defaults.py to change the default mongodb uri', action = 'store_true')
 
     return parser.parse_args()
 
@@ -87,6 +89,7 @@ if __name__ == '__main__':
     dstPort = cmdParser.d
     srcPort = cmdParser.s
     outFile = cmdParser.o
+    mongoOption = cmdParser.mongodb
     targets = []
     
     folderLogs = os.path.dirname(os.path.abspath(__file__))+'/logs/'
@@ -132,23 +135,26 @@ if __name__ == '__main__':
     rttFile = folderResults + 'rtt_' + outFile + '.json'
     pathFile = folderResults + 'path_' + outFile + '.json'
     
-    logger.info("<MongoDB> Start Uploading data")
-    uri_mongodb='mongodb://conexdat:1405871@ds163656.mlab.com:63656/conexdat'
-    client = pymongo.MongoClient(uri_mongodb)
-    db = client.conexdat
-    collection = db.rtt
-
-    try:
-        uploadColletion(collection, rttFile)
-    except Exception as e:
-        logger.info("<MongoDB> "+e)
-    
-    collection = db.path
-    try:
-        uploadColletion(collection, pathFile)
-    except Exception as e:
-        logger.info("<MongoDB> "+e)
+    if mongoOption:
+        logger.info("<MongoDB> Start Uploading data")
         
-    logger.info("<MongoDB> Data Uploaded")
+        
+        uri_mongodb=defaults.mongodb.uri
+        client = pymongo.MongoClient(uri_mongodb)
+        db = client.conexdat
+        collection = db.rtt
+    
+        try:
+            uploadColletion(collection, rttFile)
+        except Exception as e:
+            logger.info("<MongoDB> "+e)
+        
+        collection = db.path
+        try:
+            uploadColletion(collection, pathFile)
+        except Exception as e:
+            logger.info("<MongoDB> "+e)
+            
+        logger.info("<MongoDB> Data Uploaded")
         
     

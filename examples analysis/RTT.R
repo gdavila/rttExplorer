@@ -9,13 +9,20 @@ Universidad de Buenos Aires, Argentina
 
 library ("mongolite")
 library ("cowplot")
-
+library("scales")
 
 ip_src <- '"192.168.0.126"'
-ip_dst <- '"138.96.112.60"'
+ip_dst <- '"149.43.80.22"'
 probe_ttl <- 14
 
 #---- Functions ----
+
+base_breaks <- function(n = 10){
+  function(x) {
+    axisTicks(log10(range(x, na.rm = TRUE)), log = TRUE, n = n)
+  }
+}
+
 rtt_density <- function(rtt_list){
   # n: number of bins
   # bins: vector with rtt values representing bins limit
@@ -93,25 +100,42 @@ get_pathStability <- function(paths){
 }
 
 plot_rtt <- function(rtt){
-  rtt <-  t(apply(query, 1, unlist))
+  rtt <-  t(apply(rtt, 1, unlist))
   rtt <-  as.data.frame(rtt,stringsAsFactors = FALSE)
   rtt$hops.tx.sec <- as.numeric(rtt$hops.tx.sec)
   rtt$hops.rtt <- as.numeric(rtt$hops.rtt)
+  rtt$hops.reply_ttl <- as.numeric(rtt$hops.reply_ttl)
+  rtt$hops.icmpext.mpls_labels.mpls_label <- as.numeric(rtt$hops.icmpext.mpls_labels.mpls_label )
   
-  p1 <- ggplot()+
-        geom_line(data=rtt_density(sort(rtt$hops.rtt)) , aes(x=mids, y=counts), color="gray")+
-        scale_y_log10()+
-        scale_x_log10()+
-        labs(title = paste0('Addr: ' , unique(rtt$hops.addr), ' Hop: ' , probe_ttl),
-             subtitle = paste0(ip_src , ' --> ',ip_dst ) , 
-             x = "rtt (s)", y = "density") 
+  p1 <- ggplot(data=rtt_density(sort(rtt$hops.rtt)) , aes(x=mids, y=counts))+
+        geom_line(color="gray")+
+        scale_y_continuous(name = 'density', trans = log_trans(), breaks = base_breaks()) + 
+        scale_x_continuous(name = 'rtt (s)', trans = log_trans(), breaks = base_breaks()) +
+        theme_gray()+
+        theme(axis.text.x = element_text(angle = 90))
+    
   
-  p2 <- ggplot()+
-        geom_point(data=rtt, aes(x=hops.tx.sec - min(hops.tx.sec), y=hops.rtt), color="gray") +
-        labs(title = paste0('Addr: ' , unique(rtt$hops.addr), ' Hop: ' , probe_ttl),
-             subtitle = paste0(ip_src , ' --> ',ip_dst ) , 
-             x = "time (s)", y = "rtt (s)") 
-  return(plot_grid(p1, p2, align = "h"))
+  p2 <- ggplot(data=rtt, aes(x=hops.tx.sec - min(hops.tx.sec), y=hops.rtt))+
+        geom_point(color="gray") +
+        theme_gray()+
+        labs( x = "time (s)", y = "rtt (s)") 
+    
+  
+  p3 <- ggplot(data=rtt, aes(x=hops.tx.sec - min(hops.tx.sec) , y=hops.reply_ttl))+
+        geom_point(color="gray") +
+        theme_gray()+
+        labs(x = "time (s)", y = "reply ttl") 
+  
+  p4 <- ggplot(data=rtt, aes(x=hops.tx.sec - min(hops.tx.sec) , y=hops.icmpext.mpls_labels.mpls_label))+
+        geom_point(color="gray") +
+        theme_gray()+
+        labs(x = "time (s)", y = "reply ipid") 
+    
+    #labs(title = paste0('Addr: ' , unique(rtt$hops.addr), ' Hop: ' , probe_ttl),
+    #     subtitle = paste0(ip_src , ' --> ',ip_dst ) , 
+    #     x = "time (s)", y = "reply ttl")    
+  
+  return(plot_grid(p1, p2, p3, p4, ncol = 2))
 }
   
 # ---- mongoDB connector: PATH  ----
@@ -145,22 +169,20 @@ paths <- query
 pathStability <- get_pathStability(paths )
 
 # ---- RTT ----
-start <- pathStability[pathStability$duration == max(pathStability$duration), 'start'] 
-finish <- pathStability[pathStability$duration == max(pathStability$duration), 'finish']
+start <- pathStability[pathStability$duration == max(pathStability$duration), 'start'][1] 
+finish <- pathStability[pathStability$duration == max(pathStability$duration), 'finish'][1] 
 q <- paste('{ "src" : ', ip_src, 
            ', "dst" : ', ip_dst,  
            ', "hops.probe_ttl" : ',  probe_ttl, 
            ', "start.sec": {"$gt": ', start,
            ', "$lt" : ', finish, '}',
            '}')
-f <- '{ "hops.rtt" : true, "hops.tx.sec":true,  "hops.addr" : 1, "_id" : false}'
+f <- '{ "hops.rtt" : true, "hops.tx.sec":true,  "hops.addr" : 1, "hops.reply_ttl" : 1, "hops.icmpext.mpls_labels.mpls_label" : 1,  "_id" : false}'
 s <- '{"hops.rtt" : 1}'
 
 query <- rttCollection$find ( query = q, fields = f, sort = s )
 rtt <- query
 plot_rtt(rtt)
-
-
 
 
 # ---- Different Paths ----

@@ -66,11 +66,36 @@ get_mplsInfo <- function(ICMPExtensionsInfo){
   return(list(mpls_info))
 }
 
+get_mbInfo <- function (middleBoxInfo ){
+  mb_path <- middleBoxInfo
+  mb_info <- c()
+  for (i in 1: length(mb_path)){
+    mb_hop_info <- c()
+    print(i)
+    if (is.null(mb_path[[i]]) | length(mb_path[[i]]) == 0 ) {
+      mb_info <- append (mb_info,"< NoMiddleBoxINfo >" )
+    } else {
+      for (j in 1:length(mb_path[[i]]) ){
+        fieldName <- colnames(mb_path[[i]][j])
+        print (mb_path[[i]][[j]])
+        mb_hop_info <- append(mb_hop_info, list(mb_path[[i]][[j]][j,]) )
+        names(mb_hop_info)[j] <- fieldName
+        
+      }
+      mb_info <- append (mb_info, list(mb_hop_info))
+    }
+  }
+  return(list(mb_info))  
+}
+
 get_pathStability <- function(paths){
   start <- c()
   finish <- c()
   changing_paths <- c()
   mpls_info <- c()
+  mb_modifications <- c()
+  mb_additions <- c()
+  mb_deletions <- c()
   
   for (i in 1: nrow(paths$start)){
     if (i==1){
@@ -78,6 +103,11 @@ get_pathStability <- function(paths){
       start <- append(start,paths$start[['sec']][i])
       changing_paths <- append(changing_paths,list(paths$Hops[[i]]['from']$from))
       mpls_info <- append(mpls_info, get_mplsInfo(paths$Hops[[i]][['ICMPExtensions']]))
+      
+      mb_modifications <- append(mb_modifications, get_mbInfo(paths$Hops[[i]][['Modifications']])) 
+      mb_additions <- append(mb_additions, get_mbInfo(paths$Hops[[i]][['Additions']]))
+      mb_deletions <- append(mb_deletions, get_mbInfo(paths$Hops[[i]][['Deletions']]))
+      
     } else if (!all(paths$Hops[[i]][['from']][2:17] == paths$Hops[[i-1]][['from']][2:17]) &&
                !all(get_mplsInfo(paths$Hops[[i]][['ICMPExtensions']][2:17])[[1]] == get_mplsInfo(paths$Hops[[i-1]][['ICMPExtensions']][2:17])[[1]])
     ){
@@ -86,6 +116,11 @@ get_pathStability <- function(paths){
       start <- append(start,paths$start[['sec']][i])
       changing_paths <- append(changing_paths,list(paths$Hops[[i]]['from']$from))
       mpls_info <- append(mpls_info, get_mplsInfo(paths$Hops[[i]][['ICMPExtensions']]))
+      print("modifications ")
+      mb_modifications <- append(mb_modifications, get_mbInfo(paths$Hops[[i]][['Modifications']])) 
+      print("additions ")
+      mb_additions <- append(mb_additions, get_mbInfo(paths$Hops[[i]][['Additions']]))
+      mb_deletions <- append(mb_deletions, get_mbInfo(paths$Hops[[i]][['Deletions']]))
     }
     if (i == nrow(paths$start)){
       finish <- append(finish,paths$start[['sec']][i])
@@ -96,8 +131,13 @@ get_pathStability <- function(paths){
   paths_stability_df$duration <- paths_stability_df$finish - paths_stability_df$start
   paths_stability_df$paths <- changing_paths
   paths_stability_df$mplsInfo <- mpls_info
+  paths_stability_df$mbModifications <- mb_modifications
+  paths_stability_df$mbAdditions <- mb_additions
+  paths_stability_df$mbDeletions <- mb_deletions
   return(paths_stability_df)
 }
+
+
 
 plot_rtt <- function(rtt){
   rtt <-  t(apply(rtt, 1, unlist))
@@ -105,7 +145,7 @@ plot_rtt <- function(rtt){
   rtt$hops.tx.sec <- as.numeric(rtt$hops.tx.sec)
   rtt$hops.rtt <- as.numeric(rtt$hops.rtt)
   rtt$hops.reply_ttl <- as.numeric(rtt$hops.reply_ttl)
-  rtt$hops.icmpext.mpls_labels.mpls_label <- as.numeric(rtt$hops.icmpext.mpls_labels.mpls_label )
+  #rtt$hops.icmpext.mpls_labels.mpls_label <- as.numeric(rtt$hops.icmpext.mpls_labels.mpls_label )
   
   p1 <- ggplot(data=rtt_density(sort(rtt$hops.rtt)) , aes(x=mids, y=counts))+
         geom_line(color="gray")+
@@ -126,16 +166,16 @@ plot_rtt <- function(rtt){
         theme_gray()+
         labs(x = "time (s)", y = "reply ttl") 
   
-  p4 <- ggplot(data=rtt, aes(x=hops.tx.sec - min(hops.tx.sec) , y=hops.icmpext.mpls_labels.mpls_label))+
-        geom_point(color="gray") +
-        theme_gray()+
-        labs(x = "time (s)", y = "reply ipid") 
+  #p4 <- ggplot(data=rtt, aes(x=hops.tx.sec - min(hops.tx.sec) , y=hops.icmpext.mpls_labels.mpls_label))+
+   #     geom_point(color="gray") +
+    #    theme_gray()+
+     #   labs(x = "time (s)", y = "reply ipid") 
     
     #labs(title = paste0('Addr: ' , unique(rtt$hops.addr), ' Hop: ' , probe_ttl),
     #     subtitle = paste0(ip_src , ' --> ',ip_dst ) , 
     #     x = "time (s)", y = "reply ttl")    
   
-  return(plot_grid(p1, p2, p3, p4, ncol = 2))
+  return(plot_grid(p1, p2, p3, ncol = 2))
 }
   
 # ---- mongoDB connector: PATH  ----
@@ -161,7 +201,18 @@ ip_src_dst <- query
 
 # ---- mongoDB query: paths given a ip_src ip_dst ----
 q <- paste('{ "src" : ', ip_src,', "dst" : ', ip_dst, '}')
-f <- '{ "Hops.ICMPExtensions.ICMPExtensionMPLS.Info" : true, "Hops.from" : true, "Hops.hop" : true, "start.sec": true, "_id" : false}'
+
+
+f <- '{ "addr" : false,
+        "name" : false,
+        "max_hops": false,
+        "Hops.delay": false,
+        "Hops.Modifications.IP::CheckSum" : false,
+        "Hops.Modifications.IP::TTL" : false,
+        "Hops.ICMPExtensions.ICMPExtension": false,
+        "Hops.ICMPExtensions.ICMPExtensionObject": false,
+        "_id" : false}'
+
 query <- pathCollection$find ( query = q, fields = f )
 paths <- query
 
@@ -171,6 +222,9 @@ pathStability <- get_pathStability(paths )
 # ---- RTT ----
 start <- pathStability[pathStability$duration == max(pathStability$duration), 'start'][1] 
 finish <- pathStability[pathStability$duration == max(pathStability$duration), 'finish'][1] 
+path <- pathStability[pathStability$duration == max(pathStability$duration),][1,]
+
+
 q <- paste('{ "src" : ', ip_src, 
            ', "dst" : ', ip_dst,  
            ', "hops.probe_ttl" : ',  probe_ttl, 

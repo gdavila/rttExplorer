@@ -23,7 +23,8 @@ def tbFormater(tb):
     jsonPath = json.loads(tb.stdout)
     jsonPath['type'] = 'tracebox'
     jsonPath['method'] = tb.method()
-    jsonPath['dst'] = tb.IPtarget
+    jsonPath['dst'] = jsonPath.pop('addr')
+    jsonPath['dstName'] = jsonPath.pop('name')
     jsonPath['src'] = get_localip_address()
     jsonPath['sport'] = tb.probe.protocol.sport
     jsonPath['dport'] = tb.probe.protocol.dport

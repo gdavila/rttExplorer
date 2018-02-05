@@ -74,7 +74,7 @@ class tracebox():
         return 
     
     def method(self, method = None):
-        if method == None: return self.methodValue
+        if method == None: return self.methodValue.lower()
         
         self.methodValue = method
         if self.methodValue == 'TCP-ACK':

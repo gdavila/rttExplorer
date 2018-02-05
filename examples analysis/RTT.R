@@ -11,9 +11,7 @@ library ("mongolite")
 library ("cowplot")
 library("scales")
 
-ip_src <- '"192.168.0.126"'
-ip_dst <- '"149.43.80.22"'
-probe_ttl <- 14
+
 
 #---- Functions ----
 
@@ -36,18 +34,13 @@ rtt_density <- function(rtt_list){
   for (i in seq(n,length(rtt_list), by=n)){
     bins<-append(bins,rtt_list[i])
   }
-  print("bins")
   if (bins[length(bins)]!=rtt_list[length(rtt_list)]) {
     bins<-append(bins,rtt_list[length(rtt_list)])
   }
-  print(bins)
   for (i in seq(2,length(bins), by=1)){
-    print (i)
     delta<-append(delta, bins[i]-bins[i-1] )
   }
-  print (delta)
   h <- hist(rtt_list, breaks = bins, plot=FALSE)
-  print(h)
   h$counts=1/(sum(h$counts)*delta)
   rtt=data.frame(mids=h$mids, counts=h$counts)
   return(rtt)
@@ -66,23 +59,23 @@ get_mplsInfo <- function(ICMPExtensionsInfo){
   return(list(mpls_info))
 }
 
-get_mbInfo <- function (middleBoxInfo ){
+get_mbModifications <- function (middleBoxInfo ){
   mb_path <- middleBoxInfo
   mb_info <- c()
   for (i in 1: length(mb_path)){
     mb_hop_info <- c()
-    print(i)
     if (is.null(mb_path[[i]]) | length(mb_path[[i]]) == 0 ) {
       mb_info <- append (mb_info,"< NoMiddleBoxINfo >" )
     } else {
       for (j in 1:length(mb_path[[i]]) ){
-        fieldName <- colnames(mb_path[[i]][j])
-        print (mb_path[[i]][[j]])
-        mb_hop_info <- append(mb_hop_info, list(mb_path[[i]][[j]][j,]) )
-        names(mb_hop_info)[j] <- fieldName
-        
+        mb_hop_info <- append(mb_hop_info, colnames(mb_path[[i]][j]) )
+        mb_hop_info <- append(mb_hop_info, ": <")
+        mb_hop_info <- append(mb_hop_info, (mb_path[[i]][[j]][j,]$Expected) )
+        mb_hop_info <- append(mb_hop_info, ",")
+        mb_hop_info <- append(mb_hop_info, (mb_path[[i]][[j]][j,]$Received) )
+        mb_hop_info <- append(mb_hop_info, ">")
       }
-      mb_info <- append (mb_info, list(mb_hop_info))
+      mb_info <- append (mb_info, paste(mb_hop_info, collapse = ""))
     }
   }
   return(list(mb_info))  
@@ -99,28 +92,24 @@ get_pathStability <- function(paths){
   
   for (i in 1: nrow(paths$start)){
     if (i==1){
-      print (c(i, paths$start[['sec']][i]))
       start <- append(start,paths$start[['sec']][i])
       changing_paths <- append(changing_paths,list(paths$Hops[[i]]['from']$from))
       mpls_info <- append(mpls_info, get_mplsInfo(paths$Hops[[i]][['ICMPExtensions']]))
       
-      mb_modifications <- append(mb_modifications, get_mbInfo(paths$Hops[[i]][['Modifications']])) 
-      mb_additions <- append(mb_additions, get_mbInfo(paths$Hops[[i]][['Additions']]))
-      mb_deletions <- append(mb_deletions, get_mbInfo(paths$Hops[[i]][['Deletions']]))
+      mb_modifications <- append(mb_modifications, get_mbModifications(paths$Hops[[i]][['Modifications']])) 
+      #mb_additions <- append(mb_additions, get_mbInfo(paths$Hops[[i]][['Additions']]))
+      #mb_deletions <- append(mb_deletions, get_mbInfo(paths$Hops[[i]][['Deletions']]))
       
     } else if (!all(paths$Hops[[i]][['from']][2:17] == paths$Hops[[i-1]][['from']][2:17]) &&
                !all(get_mplsInfo(paths$Hops[[i]][['ICMPExtensions']][2:17])[[1]] == get_mplsInfo(paths$Hops[[i-1]][['ICMPExtensions']][2:17])[[1]])
     ){
-      print (c(i, paths$start[['sec']][i]))
       finish <- append(finish,paths$start[['sec']][i])
       start <- append(start,paths$start[['sec']][i])
       changing_paths <- append(changing_paths,list(paths$Hops[[i]]['from']$from))
       mpls_info <- append(mpls_info, get_mplsInfo(paths$Hops[[i]][['ICMPExtensions']]))
-      print("modifications ")
-      mb_modifications <- append(mb_modifications, get_mbInfo(paths$Hops[[i]][['Modifications']])) 
-      print("additions ")
-      mb_additions <- append(mb_additions, get_mbInfo(paths$Hops[[i]][['Additions']]))
-      mb_deletions <- append(mb_deletions, get_mbInfo(paths$Hops[[i]][['Deletions']]))
+      mb_modifications <- append(mb_modifications, get_mbModifications(paths$Hops[[i]][['Modifications']])) 
+      #mb_additions <- append(mb_additions, get_mbInfo(paths$Hops[[i]][['Additions']]))
+      #mb_deletions <- append(mb_deletions, get_mbInfo(paths$Hops[[i]][['Deletions']]))
     }
     if (i == nrow(paths$start)){
       finish <- append(finish,paths$start[['sec']][i])
@@ -129,15 +118,13 @@ get_pathStability <- function(paths){
   paths_stability_df <- data.frame(start)
   paths_stability_df$finish <- finish
   paths_stability_df$duration <- paths_stability_df$finish - paths_stability_df$start
-  paths_stability_df$paths <- changing_paths
+  paths_stability_df$hops <- changing_paths
   paths_stability_df$mplsInfo <- mpls_info
   paths_stability_df$mbModifications <- mb_modifications
-  paths_stability_df$mbAdditions <- mb_additions
-  paths_stability_df$mbDeletions <- mb_deletions
+  #paths_stability_df$mbAdditions <- mb_additions
+  #paths_stability_df$mbDeletions <- mb_deletions
   return(paths_stability_df)
 }
-
-
 
 plot_rtt <- function(rtt){
   rtt <-  t(apply(rtt, 1, unlist))
@@ -190,8 +177,13 @@ rttCollection <-  mongo( collection = 'rtt',
                        url = 'mongodb://conexdat:1405871@ds163656.mlab.com:63656/conexdat'
 )
 
+ip_src <- '"192.168.0.126"'
+ip_dst <- '"149.43.80.22"'
+probe_ttl <- 14
 
-# ---- mongoDB query: IPsrc and IPdst List ----
+
+
+# ---- mongoDB query: ALL IPsrc and IPdst List ----
 query <- pathCollection$aggregate('[
                                { "$group" : { "_id" : {"src": "$src", "dst": "$dst"} } }
                                ]')
@@ -201,7 +193,6 @@ ip_src_dst <- query
 
 # ---- mongoDB query: paths given a ip_src ip_dst ----
 q <- paste('{ "src" : ', ip_src,', "dst" : ', ip_dst, '}')
-
 
 f <- '{ "addr" : false,
         "name" : false,
@@ -222,8 +213,6 @@ pathStability <- get_pathStability(paths )
 # ---- RTT ----
 start <- pathStability[pathStability$duration == max(pathStability$duration), 'start'][1] 
 finish <- pathStability[pathStability$duration == max(pathStability$duration), 'finish'][1] 
-path <- pathStability[pathStability$duration == max(pathStability$duration),][1,]
-
 
 q <- paste('{ "src" : ', ip_src, 
            ', "dst" : ', ip_dst,  
@@ -241,9 +230,7 @@ plot_rtt(rtt)
 
 # ---- Different Paths ----
 
-#query <- rttExplorer$aggregate('[
-#                               { "$match" : { "dst" : "81.200.198.6"} },
-#                               { "$project" : { "Hops.from": 1,  "_id" : 0 } },
-#                               { "$group" : { "_id" : "$Hops.from" } }
-#                               ]')
+StablePath <- pathStability[pathStability$duration == max(pathStability$duration),][1,]
+
+StablePath <- (data.frame(c(hops=StablePath$hops, mplsInfo=StablePath$mplsInfo, mbModifications= StablePath$mbModifications)))
 

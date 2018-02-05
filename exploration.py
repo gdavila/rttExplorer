@@ -20,11 +20,11 @@ import os
 import logging
 
 def tbFormater(tb):
+    
     jsonPath = json.loads(tb.stdout)
     jsonPath['type'] = 'tracebox'
     jsonPath['method'] = tb.method()
-    jsonPath['dst'] = jsonPath.pop('addr')
-    jsonPath['dstName'] = jsonPath.pop('name')
+    jsonPath['dst'] = tb.IPtarget
     jsonPath['src'] = get_localip_address()
     jsonPath['sport'] = tb.probe.protocol.sport
     jsonPath['dport'] = tb.probe.protocol.dport
@@ -71,6 +71,7 @@ class exploration():
         self.method =  METHOD
         self.minRTT = MIN_TTL
         self.maxRTT = MAX_TTL
+        self.exploName = OUTFILE 
         self.outFile = OUTFILE + '.json'
         self.refreshPathTime = PATH_INTERVAL  #minutes
         self.refreshRttTime = RTT_INTERVAL  #second
@@ -141,6 +142,7 @@ class exploration():
             self.logger.info("<Exploration ID{}> ".format(self.ID) + 'Internet Paths recovered. RTT Measurements restarted')
             self.pathDiscError = False
         self.path = tbFormater(self.tb)
+        self.path['explorationName'] =  self.exploName
         with open(self.pathFileName, 'a') as f:
             f.write(json.dumps(self.path)+'\n')
             
@@ -181,9 +183,11 @@ class exploration():
         self.rttMeas = []
         
         for meassurement in meassurements:
-            self.rttMeas.append (json.loads(meassurement))
+            jsonMeassurement = json.loads(meassurement)
+            jsonMeassurement ['explorationName'] =  self.exploName
+            self.rttMeas.append (jsonMeassurement)
             with open(self.rttFileName, 'a') as f:
-                f.write(meassurement+'\n')
+                f.write(json.dumps(jsonMeassurement)+'\n')
         
     
     def run(self):

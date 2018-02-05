@@ -38,7 +38,7 @@ def get_args():
     parserOPt.add_argument('-M', metavar = 'maxTTL', type = str, help = 'max ttl used in traceroute. Default is 20', default = '20')
     parserOPt.add_argument('-d', metavar = 'dstPort',type = str, help = 'destination Port. Default is 44444', default = '44444')
     parserOPt.add_argument('-s', metavar = 'srcPort',type = str, help = 'source Port. Default is 33333', default = '33333')
-    parserOPt.add_argument('-o', metavar = 'outFile', type = str, help = 'File name to save the results', default = defaults.scamper.monitorname)
+    parserOPt.add_argument('-o', metavar = 'outFile', type = str, help = 'File name to save the results (exploration name)', default = defaults.scamper.monitorname)
     parserOPt.add_argument('--mongodb', help = 'upload the results in a mongoDB. See defaults.py to change the default mongodb uri', action = 'store_true')
 
     return parser.parse_args()

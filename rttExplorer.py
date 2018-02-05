@@ -26,8 +26,8 @@ def get_args():
 
     parserReq = parser.add_argument_group('required arguments:')
     group = parserReq.add_mutually_exclusive_group(required = True)
-    group.add_argument('-i', metavar = 'ipTarget' , type = str, help = 'IP target')
-    group.add_argument('-I', metavar = 'inputTargetFile' ,type = str, help = 'input file containing a list of IP targets line by line')
+    group.add_argument('-i', metavar = 'ipTarget' , type = str, help = 'IPv4 target')
+    group.add_argument('-I', metavar = 'inputTargetFile' ,type = str, help = 'input file with a list of IPv4 targets line by line')
     parserReq.add_argument('-t', metavar = 'explorationTime', help = 'Duration time of the exploration (minutes)', type = int, required = True)
 
     parserOPt = parser.add_argument_group('optional arguments:')

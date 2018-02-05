@@ -22,7 +22,7 @@ import logging
 
 def get_args():
     '''This function parses and return arguments passed in'''
-    parser = argparse.ArgumentParser(prog = 'rttmeas', description = 'script to measure the rrt along a path')
+    parser = argparse.ArgumentParser(prog = 'rttExplorer', description = 'script to measure the rrt along a path')
 
     parserReq = parser.add_argument_group('required arguments:')
     group = parserReq.add_mutually_exclusive_group(required = True)

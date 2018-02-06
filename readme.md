@@ -1,8 +1,21 @@
-`rttExplorer` is a python-based tool to meassure round-trip-times (rtt) over Internet Paths. `rttExplorer` is based on Scamper and Tracebox. Tracebox is used to reveal paths through IPv4 targets; and Scamper is used to meassure the rtt to each hop revealed by tracebox.
+# About
 
-`rttExplorer` allows to make periodic meassurements over a Internet Path i. e., given a IPv4 target, the path is discovered every *path Interval*, then the rtt is meassured to each hop every *rtt Interval*. Both probes (path discovery and rtt measurements) are generated with identical flow id in order to assure uniqueness in the forward path.
+`rttExplorer` is a python-based tool to meassure round-trip-times (RTT) over Internet Paths. `rttExplorer` is based on Scamper and Tracebox. Tracebox is used to reveal paths through IPv4 targets; and Scamper is used to meassure the rtt to each hop revealed by tracebox.
+
+`rttExplorer` also allows to make periodic meassurements over the Internet Path, i. e., given a IPv4 target, the path is discovered every *path Interval*, then the RTT is meassured to each revealed hop every *RTT Interval*. Both probes (path discovery and rtt measurements) are generated with identical flow id in order to assure uniqueness in the forward path. At the moment, it supports UDP and TCP-ACK probes. However, is prety easy to add new probes in the code.
+
+# Requierements
+
+* Python3 or greater
+* Tracebox v0.4.4 or greater
+* Scamper v20171204 or greater
+
+# Installation
+
+Just clone or download the latest version of rttExplorer
 
 
+# Usage
 
 
 ```
@@ -37,4 +50,12 @@ optional arguments::
                       change the default mongodb uri
  ```
 
-sad
+# Examples
+
+The next example send a discovery path probe to 8.8.8.8 every 2 minutes (-D) for 10 minutes (-t). To each revealed hop the RTT is meassured every 1 second (default value). The probes used are TCP-ACK and the first ttl is 6. Finally, the results are stored in a mongodb.  If mongodb is not enable the results are saved in json format in *results/* folder. 
+
+ `sudo python3 rttExplorer.py -i 8.8.8.8 -t 10 -D 2 -m TCP-ACK -f 6 -—mongodb`
+ 
+The second example is simila to the previous one but the targets are readed from the file *targets.txt* 
+
+ `sudo python3 rttExplorer.py -I targets.txt -t 10 -D 2 -m TCP-ACK -f 6 -—mongodb `

@@ -16,7 +16,7 @@
 * [Scamper v20171204](https://www.caida.org/tools/measurement/scamper/code/scamper-cvs-20171204.tar.gz) or greater. Download from the source and build it.
 
 	```
-	wget https://www.caida.org/tools/measurement/scamper/code/scamper-	cvs-20171204.tar.gz
+	wget https://www.caida.org/tools/measurement/scamper/code/scamper-cvs-20171204.tar.gz
 	tar -xzf scamper-cvs-20171204.tar.gz
 	cd scamper-cvs-20171204/
 	sudo ./configure

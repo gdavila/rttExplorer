@@ -57,7 +57,3 @@ class exploration:
     dport = str(44444)
     sport = str(33333)
     
-class mongodb:
-    password = '1405871'
-    uri = 'mongodb://conexdat:'+password+'@ds163656.mlab.com:63656/conexdat'
-    

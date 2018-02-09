@@ -14,7 +14,7 @@ import exploration
 import defaults
 import threading
 import time
-import pymongo
+import pymongo, mongo
 import json
 import os
 import logging
@@ -139,7 +139,7 @@ if __name__ == '__main__':
         logger.info("<MongoDB> Start Uploading data")
         
         
-        uri_mongodb=defaults.mongodb.uri
+        uri_mongodb=mongo.uri
         client = pymongo.MongoClient(uri_mongodb)
         db = client.conexdat
         collection = db.rtt

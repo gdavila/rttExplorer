@@ -46,7 +46,7 @@ class tracebox:
     dport = str(44444)
     sport = str(33333)
     hops_min = str(1)
-    timeout = str(0.5) #seconds
+    timeout = str(1) #seconds
     hops_max = str(20)
     tos = str(0)
     outfile = 'outfile'

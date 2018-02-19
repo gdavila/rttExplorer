@@ -15,7 +15,6 @@ import tracebox
 import json
 import socket
 import time
-import defaults
 import os
 import logging
 
@@ -51,16 +50,19 @@ class exploration():
     ID = 0
     offsetSrcPort = 0
     
-    def __init__(self, TARGET, 
-                 SPORT = defaults.exploration.sport , 
-                 DPORT = defaults.exploration.dport, 
-                 METHOD = defaults.exploration.method,
-                 OUTFILE = defaults.scamper.monitorname,
-                 PATH_INTERVAL = 1,
-                 RTT_INTERVAL = 1,
-                 EXPLORATION_TIME = 5,
-                 MIN_TTL = '1',
-                 MAX_TTL = '20'):
+    def __init__(self, 
+                 TARGET, 
+                 SPORT , 
+                 DPORT , 
+                 METHOD,
+                 OUTFILE,
+                 PATH_INTERVAL,
+                 RTT_INTERVAL,
+                 EXPLORATION_TIME,
+                 MIN_TTL ,
+                 MAX_TTL ,
+                 RTT_TIMEOUT,
+                 PATH_TIMEOUT):
         
         #print ("<Exploration ID{} >".format(exploration.ID))
         self.ID = exploration.ID
@@ -71,6 +73,8 @@ class exploration():
         self.method =  METHOD
         self.minRTT = MIN_TTL
         self.maxRTT = MAX_TTL
+        self.pathTimeout = PATH_TIMEOUT 
+        self.rttTimeout = RTT_TIMEOUT
         self.exploName = OUTFILE 
         self.outFile = OUTFILE + '.json'
         self.refreshPathTime = PATH_INTERVAL  #minutes
@@ -127,7 +131,8 @@ class exploration():
         self.tb.method(self.method)
         self.tb.sport(self.sport)
         self.tb.dport(self.dport)
-        time.sleep(1)
+        self.tb.timeout = self.pathTimeout
+        #time.sleep(1)
         try:
             self.tb.run()
         except tracebox.runError as e:
@@ -155,6 +160,7 @@ class exploration():
             self.sc.newTraceProbe(self.target)
             self.sc.probe.sport = self.sport
             self.sc.probe.dport = self.dport
+            self.sc.probe.wait = self.rttTimeout
             if self.method == 'UDP': 
                 self.sc.probe.method = 'UDP-PARIS'
             else: self.sc.probe.method = self.method
@@ -171,7 +177,7 @@ class exploration():
             self.rttMeas = []
             self.rttMeasError = True
             return
-        
+        #print (self.sc.command)
         if self.rttMeasError: 
             self.logger.info("<Exploration ID{}> ".format(self.ID) + "RTT Measurements restarted")
             self.rttMeasError = False

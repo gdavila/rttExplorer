@@ -18,6 +18,7 @@ import pymongo, mongo
 import json
 import os
 import logging
+import socket 
 
 
 def get_args():
@@ -32,19 +33,22 @@ def get_args():
 
     parserOPt = parser.add_argument_group('optional arguments:')
     parserOPt.add_argument('-D', metavar = 'pathInterval', help = 'time interval between path discovery probes (minutes). Default is 5',type = int, default = 5)
-    parserOPt.add_argument('-T', metavar = 'rttInterval', help = 'time interval between rtt measurement probes (seconds). Default is 1', type = int, default = 1)
-    parserOPt.add_argument('-m', metavar = 'method', type = str, help = 'UDP or TCP-ACK. Default is UDP', choices =  ['UDP', 'TCP-ACK'], default = 'UDP')
+    parserOPt.add_argument('-T', metavar = 'rttInterval', help = 'time interval between rtt measurement probes (seconds). Decimals allowed. Default is 1.0', type = float, default = 1)
+    parserOPt.add_argument('-m', metavar = 'method', type = str, help = 'UDP or TCP-ACK. Default is UDP', choices =  ['UDP', 'TCP-ACK'], default = defaults.exploration.method)
     parserOPt.add_argument('-f', metavar = 'firstTTL', type = str, help = 'ttl for the first hop used in traceroute. Default is 1', default = '1')
     parserOPt.add_argument('-M', metavar = 'maxTTL', type = str, help = 'max ttl used in traceroute. Default is 20', default = '20')
-    parserOPt.add_argument('-d', metavar = 'dstPort',type = str, help = 'destination Port. Default is 44444', default = '44444')
-    parserOPt.add_argument('-s', metavar = 'srcPort',type = str, help = 'source Port. Default is 33333', default = '33333')
+    parserOPt.add_argument('-d', metavar = 'dstPort',type = str, help = 'destination Port. Default is 44444', default = defaults.exploration.dport)
+    parserOPt.add_argument('-s', metavar = 'srcPort',type = str, help = 'source Port. Default is 33333', default= defaults.exploration.sport )
     parserOPt.add_argument('-o', metavar = 'outFile', type = str, help = 'File name to save the results (exploration name)', default = defaults.scamper.monitorname)
     parserOPt.add_argument('--mongodb', help = 'upload the results in a mongoDB. See defaults.py to change the default mongodb uri', action = 'store_true')
+    parserOPt.add_argument('--rttTimeout', type = str, help = 'Timeout for rtt probes. Default is 1. It must be lower or at least equal that rttInterval', default =defaults.trace.wait )
+    parserOPt.add_argument('--pathTimeout', type = str, help = 'Timeout for rtt probes. Default is 1', default= defaults.tracebox.timeout)
+
 
     return parser.parse_args()
 
 
-def rttExplorer(target, srcPort, dstPort, method, outFile, pathInterval, rttInterval,explorationTime, minTTL, maxTTL):
+def rttExplorer(target, srcPort, dstPort, method, outFile, pathInterval, rttInterval,explorationTime, minTTL, maxTTL,rttTimeout, pathTimeout ):
         probe = exploration.exploration(TARGET = target, 
                      SPORT = srcPort , 
                      DPORT =  dstPort, 
@@ -54,10 +58,12 @@ def rttExplorer(target, srcPort, dstPort, method, outFile, pathInterval, rttInte
                      RTT_INTERVAL = rttInterval,
                      EXPLORATION_TIME = explorationTime,
                      MIN_TTL = minTTL,
-                     MAX_TTL = maxTTL) 
+                     MAX_TTL = maxTTL,
+                     RTT_TIMEOUT = rttTimeout,
+                     PATH_TIMEOUT = pathTimeout) 
         probe.run()
 
-
+                 
  
 
 def uploadColletion(collection, srcFile):
@@ -90,6 +96,8 @@ if __name__ == '__main__':
     srcPort = cmdParser.s
     outFile = cmdParser.o
     mongoOption = cmdParser.mongodb
+    rttTimeout = cmdParser.rttTimeout
+    pathTimeout = cmdParser.pathTimeout
     targets = []
     
     folderLogs = os.path.dirname(os.path.abspath(__file__))+'/logs/'
@@ -101,7 +109,7 @@ if __name__ == '__main__':
                         filename=logFile,
                         format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s")
     logger = logging.getLogger()
-    logger.info("<rttExplorer> START")
+    
         
         
     if inputTargetFile == None:
@@ -111,8 +119,19 @@ if __name__ == '__main__':
             targets = file.readlines()
     targets = [x.strip() for x in targets]
     
+    if float(rttTimeout) >  rttInterval: 
+        #rttInterval = float(rttTimeout)
+        logger.info("<rttExplorer> rttInterval is lower than 1 second. The periodicity is not guaranteed".format(rttTimeout))
+    
+    logger.info("<rttExplorer> START")
     for target in targets:
-        t = threading.Thread(target = rttExplorer, args = (  target, 
+        try:
+            host = socket.gethostbyname(target)
+        except Exception as e:
+            logger.info("<MongoDB> "+ target +" " + str(e))
+            continue
+        
+        t = threading.Thread(target = rttExplorer, args = (host, 
                                                          srcPort , 
                                                          dstPort, 
                                                          method,
@@ -121,13 +140,18 @@ if __name__ == '__main__':
                                                          rttInterval,
                                                          explorationTime,
                                                          minTTL,
-                                                         maxTTL,))
+                                                         maxTTL,
+                                                         rttTimeout,
+                                                         pathTimeout))
         time.sleep(1)
         t.start()
+        
+    try : rttActive = t.isAlive()
+    except NameError : rttActive = False
 
-    while (t.isAlive()):
-        time.sleep(1)
-    
+    while (rttActive):
+        time.sleep(1)    
+
     time.sleep(5)
     logger.info("<rttExplorer> FINISH")
     

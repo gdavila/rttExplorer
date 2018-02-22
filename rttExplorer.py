@@ -124,6 +124,7 @@ if __name__ == '__main__':
         logger.info("<rttExplorer> rttInterval is lower than 1 second. The periodicity is not guaranteed".format(rttTimeout))
     
     logger.info("<rttExplorer> START")
+    print(mongoOption)
     for target in targets:
         try:
             host = socket.gethostbyname(target)
@@ -146,11 +147,10 @@ if __name__ == '__main__':
         time.sleep(1)
         t.start()
         
-    try : rttActive = t.isAlive()
-    except NameError : rttActive = False
-
-    while (rttActive):
-        time.sleep(1)    
+    try : 
+        while (t.isAlive()):
+            time.sleep(1)    
+    except NameError: pass
 
     time.sleep(5)
     logger.info("<rttExplorer> FINISH")
@@ -159,6 +159,7 @@ if __name__ == '__main__':
     rttFile = folderResults + 'rtt_' + outFile + '.json'
     pathFile = folderResults + 'path_' + outFile + '.json'
     
+    print(mongoOption)
     if mongoOption:
         logger.info("<MongoDB> Start Uploading data")
         

@@ -96,7 +96,7 @@ class exploration():
                             filename=self.logFileName,
                             format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s")
         self.logger = logging.getLogger()
-        self.logger.info("<Exploration ID{}> ".format(self.ID) + " START")
+        self.logger.info("<Exploration ID{}> ".format(self.ID) +  "  {} ".format(self.target)  + " START")
         
     def iniFile(self):
         if exploration.ID == 0: 

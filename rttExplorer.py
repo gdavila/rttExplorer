@@ -73,11 +73,15 @@ def uploadColletion(collection, srcFile):
         counter =0
         for line in file:
             counter+=1
-            data.append(json.loads(line))
-            if counter == maxLines:
-                collection.insert_many(data)
-                counter=0
-                data=[]
+            try:
+                data.append(json.loads(line))
+                if counter == maxLines:
+                    collection.insert_many(data)
+                    counter=0
+                    data=[]
+            except Exception as e:
+                logger.info("<MongoDB> " + str(e) + " "+ line)
+                continue
         if data: collection.insert_many(data)
     return 
 
@@ -153,7 +157,7 @@ if __name__ == '__main__':
         t.start()
      
     for job in jobs:
-        job.join()
+        job.join(   )
     #try : 
         #while (t.isAlive()):
         #    time.sleep(5)    
@@ -180,15 +184,17 @@ if __name__ == '__main__':
         collection = db.rtt
     
         try:
+            logger.info("<MongoDB> Uploading rtt data...")
             uploadColletion(collection, rttFile)
         except Exception as e:
-            logger.info("<MongoDB> "+e)
+            logger.info("<MongoDB> "+str(e))
         
         collection = db.path
         try:
+            logger.info("<MongoDB> Uploading path data...")
             uploadColletion(collection, pathFile)
         except Exception as e:
-            logger.info("<MongoDB> "+e)
+            logger.info("<MongoDB> "+str(e))
             
         logger.info("<MongoDB> Data Uploaded")
         

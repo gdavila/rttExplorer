@@ -65,7 +65,6 @@ def rttExplorer(target, srcPort, dstPort, method, outFile, pathInterval, rttInte
 
                  
  
-
 def uploadColletion(collection, srcFile):
     with open(srcFile) as file:
         data = []
@@ -75,15 +74,26 @@ def uploadColletion(collection, srcFile):
             counter+=1
             try:
                 data.append(json.loads(line))
-                if counter == maxLines:
-                    collection.insert_many(data)
-                    counter=0
-                    data=[]
             except Exception as e:
-                logger.info("<MongoDB> " + str(e) + " "+ line)
+                logger.info(("<MongoDB> " + "JSON: " + str(e)))
                 continue
-        if data: collection.insert_many(data)
+            if counter == maxLines:
+                try:
+                    collection.insert_many(data, ordered = False)
+                except pymongo.errors.BulkWriteError as e:
+                    logger.info("<MongoDB> " + e.details['writeErrors'][0]['errmsg'])
+                    data =[]
+                    break
+                counter=0
+                data=[]
+        if data:
+            try:
+                collection.insert_many(data)
+            except pymongo.errors.BulkWriteError as e:
+                logger.info("<MongoDB> " + e.details['writeErrors'][0]['errmsg'])
+                pass
     return 
+
 
 if __name__ == '__main__':
     
@@ -177,24 +187,17 @@ if __name__ == '__main__':
     if mongoOption:
         logger.info("<MongoDB> Start Uploading data")
         
-        
         uri_mongodb=mongo.uri
         client = pymongo.MongoClient(uri_mongodb)
         db = client.conexdat
         collection = db.rtt
     
-        try:
-            logger.info("<MongoDB> Uploading rtt data...")
-            uploadColletion(collection, rttFile)
-        except Exception as e:
-            logger.info("<MongoDB> "+str(e))
+        logger.info("<MongoDB> Uploading rtt data...")
+        uploadColletion(collection, rttFile)
         
         collection = db.path
-        try:
-            logger.info("<MongoDB> Uploading path data...")
-            uploadColletion(collection, pathFile)
-        except Exception as e:
-            logger.info("<MongoDB> "+str(e))
+        logger.info("<MongoDB> Uploading path data...")
+        uploadColletion(collection, pathFile)
             
         logger.info("<MongoDB> Data Uploaded")
         

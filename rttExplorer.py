@@ -124,7 +124,10 @@ if __name__ == '__main__':
         logger.info("<rttExplorer> rttInterval is lower than 1 second. The periodicity is not guaranteed".format(rttTimeout))
     
     logger.info("<rttExplorer> START")
-    print(mongoOption)
+    #print(mongoOption)
+    
+    jobs = []
+    
     for target in targets:
         try:
             host = socket.gethostbyname(target)
@@ -144,15 +147,22 @@ if __name__ == '__main__':
                                                          maxTTL,
                                                          rttTimeout,
                                                          pathTimeout))
+        
+        jobs.append(t)
         time.sleep(1)
         t.start()
-        
-    try : 
-        while (t.isAlive()):
-            time.sleep(1)    
-    except NameError: pass
+     
+    for job in jobs:
+        job.join()
+    #try : 
+        #while (t.isAlive()):
+        #    time.sleep(5)    
+    #except NameError: 
+    #    logger.info("Name Error")
+    #    pass
 
     time.sleep(5)
+    
     logger.info("<rttExplorer> FINISH")
     
     folderResults = os.path.dirname(os.path.abspath(__file__))+'/results/'

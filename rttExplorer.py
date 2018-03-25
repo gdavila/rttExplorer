@@ -95,6 +95,15 @@ def uploadColletion(collection, srcFile):
     return 
 
 
+def timed_join_all(jobs, timeout):
+    start = cur_time = time.time()
+    while cur_time <= (start + timeout):
+        for job in jobs:
+            if not job.is_alive():
+                job.join()
+        time.sleep(1)
+        cur_time = time.time()
+
 if __name__ == '__main__':
     
     cmdParser=get_args()
@@ -149,7 +158,7 @@ if __name__ == '__main__':
             logger.info("<MongoDB> "+ target +" " + str(e))
             continue
         
-        t = threading.Thread(target = rttExplorer, args = (host, 
+        t = threading.Thread(target = rttExplorer, name = target, args = (host, 
                                                          srcPort , 
                                                          dstPort, 
                                                          method,
@@ -166,8 +175,16 @@ if __name__ == '__main__':
         time.sleep(1)
         t.start()
      
+        
+    timed_join_all(jobs, (explorationTime + 10 )* 60  )
+    
     for job in jobs:
-        job.join(   )
+        if job.is_alive(): 
+            logger.info("<rttExplorer>  Timeout in job thread: " + job.getName())
+            job.terminate()
+        
+    #for job in jobs:
+    #    job.join(explorationTime*60 + 600)
     #try : 
         #while (t.isAlive()):
         #    time.sleep(5)    
@@ -175,7 +192,7 @@ if __name__ == '__main__':
     #    logger.info("Name Error")
     #    pass
 
-    time.sleep(5)
+    #time.sleep(5)
     
     logger.info("<rttExplorer> FINISH")
     

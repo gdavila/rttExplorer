@@ -10,54 +10,71 @@ CoNexDat
 @author: Gabriel Davila Revelo
 """
 
+import argparse
 import exploration
-import schedule
-import signal
-import sys, pymongo, json
+import defaults
+import threading
+import time
+import pymongo, mongo
+import json
+import os
+import logging
+import socket 
 
-"""       
-def signal_handler(signal, frame):
-    print('You pressed Ctrl+C!')
-    schedule.clear()
-    sys.exit(0)
-
-def main():
-
-    targets = ['200.45.32.4']    
-    
-    signal.signal(signal.SIGINT, signal_handler)
-    
-    for target in targets:
-        explorer = exploration.exploration(target)
-        explorer.run()
-"""
 
 def uploadColletion(collection, srcFile):
-    with open(srcFile) as f:
+    with open(srcFile) as file:
         data = []
-        maxLines = 1000
+        maxLines = 10000
         counter =0
-        for line in f:
+        for line in file:
             counter+=1
-            data.append(json.loads(line))
+            try:
+                data.append(json.loads(line))
+            except Exception as e:
+                print(("<MongoDB> " + "JSON: " + str(e)))
+                continue
             if counter == maxLines:
-                collection.insert_many(data)
+                try:
+                    collection.insert_many(data, ordered = False)
+                except pymongo.errors.BulkWriteError as e:
+                    print("<MongoDB> " + e.details['writeErrors'][0]['errmsg'])
+                    data =[]
+                    break
                 counter=0
                 data=[]
-        if data: collection.insert_many(data)
-    return
+        if data:
+            try:
+                collection.insert_many(data)
+            except pymongo.errors.BulkWriteError as e:
+                print("<MongoDB> " + e.details['writeErrors'][0]['errmsg'])
+                pass
+    return 
+
+
+print("<MongoDB> Start Uploading data")
+
+
+
+rttFile = 'results/rtt_raspberrypi.json'
+pathFile = 'results/path_raspberrypi.json'
+uri_mongodb='mongodb://conexdat:1405871@ds163656.mlab.com:63656/conexdat'
+client = pymongo.MongoClient(uri_mongodb)
+db = client.conexdat
+collection = db.rtt
+
+print("<MongoDB> Uploading rtt data...")
+uploadColletion(collection, rttFile)
+
+collection = db.path
+print("<MongoDB> Uploading path data...")
+
+uploadColletion(collection, pathFile)
+    
+print("<MongoDB> Data Uploaded")
+
+
  
 
 
-file = 'results/rtt_Fernandos-MacBook-Air.local.json'
-uri_mongodb='mongodb://conexdat:14058712@ds163656.mlab.com:63656/conexdat'
-client = pymongo.MongoClient(uri_mongodb)
-db = client.conexdat
-collection = db.test_collection
-try:
-    uploadColletion(collection, file)
-except FileNotFoundError:
-    print ('A')
-except Exception as e:
-    print(e)
     

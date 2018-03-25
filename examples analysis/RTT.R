@@ -176,10 +176,13 @@ rttCollection <-  mongo( collection = 'rtt',
                        db = 'conexdat',
                        url = 'mongodb://conexdat:1405871@ds163656.mlab.com:63656/conexdat'
 )
+#181.30.134.68, hops: 5,6
+#198.45.49.161, hops: 5-14
+#198.38.124.203
+#187.102.77.237
+ip_src <- '"192.168.0.230"'
+ip_dst <- '"198.45.49.161"'
 
-ip_src <- '"192.168.0.126"'
-ip_dst <- '"149.43.80.22"'
-probe_ttl <- 14
 
 
 
@@ -210,9 +213,14 @@ paths <- query
 # ---- R algorithim: different paths analysis ----
 pathStability <- get_pathStability(paths )
 
+
+
 # ---- RTT ----
 start <- pathStability[pathStability$duration == max(pathStability$duration), 'start'][1] 
 finish <- pathStability[pathStability$duration == max(pathStability$duration), 'finish'][1] 
+
+
+probe_ttl <- 9
 
 q <- paste('{ "src" : ', ip_src, 
            ', "dst" : ', ip_dst,  

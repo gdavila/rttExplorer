@@ -224,8 +224,7 @@ class exploration():
 
         
     def isPending(self):
-        if time.time() - self.start >= self.duration * 60:
-            return False
+        if time.time() - self.start >= self.duration * 60: return False
         else: return True
 
         

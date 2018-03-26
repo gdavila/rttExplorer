@@ -158,7 +158,7 @@ if __name__ == '__main__':
             logger.info("<MongoDB> "+ target +" " + str(e))
             continue
         
-        t = threading.Thread(target = rttExplorer, name = target, args = (host, 
+        t = threading.Thread(target = rttExplorer, name = host, args = (host, 
                                                          srcPort , 
                                                          dstPort, 
                                                          method,
@@ -182,6 +182,7 @@ if __name__ == '__main__':
         if job.is_alive(): 
             logger.info("<rttExplorer>  Timeout in job thread: " + job.getName())
             job.terminate()
+        time.sleep(1)
         
     #for job in jobs:
     #    job.join(explorationTime*60 + 600)

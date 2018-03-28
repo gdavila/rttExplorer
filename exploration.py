@@ -122,6 +122,7 @@ class exploration():
     def checkSrcPort(self):
         while self.SrcPortBussy():
             exploration.offsetSrcPort+=1
+            self.logger.error("<Exploration ID{}> ".format(self.ID) + '[SrcPortBussy] '+ self.sport)
             self.sport = str(int(self.sport) + exploration.offsetSrcPort)
             
     def pathDiscovery(self):

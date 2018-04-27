@@ -1,12 +1,3 @@
+187.102.77.237
 ipv4-c010-eze002-prima-isp.1.oca.nflxvideo.net
 ipv4-c018-gru001-ix.1.oca.nflxvideo.net
-ipv4-c134-mia003-ix.1.oca.nflxvideo.net
-teste.g3telecom.net.br
-teste.enlaceinformatica.net.br
-speedtest.axsbolivia.com
-187.102.77.237
-speedtest.artelecom.com.br
-speedtestmed1.tigo.com.co
-speedtest.telecaravaca.com
-speedtestpa1.telecomitalia.it
-mire-vprn200.axione.fr

@@ -140,7 +140,7 @@ plot_rtt <- function(rtt, probe_ttl){
   rtt$hops.tx.sec <- as.numeric(rtt$hops.tx.sec)
   rtt$hops.rtt <- as.numeric(rtt$hops.rtt)
   rtt$hops.reply_ttl <- as.numeric(rtt$hops.reply_ttl)
-  ip <- unique(rtt$hops.addr)[1]
+  ip <- unique(rtt$hops.addr)
   #rtt$hops.icmpext.mpls_labels.mpls_label <- as.numeric(rtt$hops.icmpext.mpls_labels.mpls_label )
   
   p1 <- ggplot(data=rtt_density(sort(rtt$hops.rtt)) , aes(x=mids, y=counts))+
@@ -148,23 +148,24 @@ plot_rtt <- function(rtt, probe_ttl){
         scale_y_continuous(name = 'density', trans = log_trans(), breaks = base_breaks()) + 
         scale_x_continuous(name = 'rtt (s)', trans = log_trans(), breaks = base_breaks()) +
         theme_gray()+
-        theme(axis.text.x = element_text(angle = 90))+
-        ggtitle(paste0(ip,"\n probe ttl = ", probe_ttl)) 
+        theme(axis.text.x = element_text(angle = 90))
+        #ggtitle(paste0(ip,"\n probe ttl = ", probe_ttl)) 
     
   
   p2 <- ggplot(data=rtt, aes(x=hops.tx.sec - min(hops.tx.sec), y=hops.rtt))+
         geom_point(color="gray", alpha=0.3) +
         scale_y_continuous(limits=c(min(rtt$hops.rtt),quantile(rtt$hops.rtt, .98)))+
         theme_gray()+
-        labs( x = "time (s)", y = "rtt (s)")+
-        ggtitle(paste0(ip,"\n probe ttl = ", probe_ttl)) 
+        labs( x = "time (s)", y = "rtt (s)")
+        #ggtitle(paste0(ip,"\n probe ttl = ", probe_ttl)) 
     
   
   p3 <- ggplot(data=rtt, aes(x=hops.tx.sec - min(hops.tx.sec) , y=hops.reply_ttl))+
-        geom_point(color="gray") +
+        geom_line(color="red") +
+        scale_y_continuous() +
         theme_gray()+
-        labs(x = "time (s)", y = "reply ttl")+
-        ggtitle(paste0(ip,"\n probe ttl = ", probe_ttl)) 
+        labs(x = "time (s)", y = "reply ttl")
+        #ggtitle(paste0(ip,"\n probe ttl = ", probe_ttl)) 
   
   #p4 <- ggplot(data=rtt, aes(x=hops.tx.sec - min(hops.tx.sec) , y=hops.icmpext.mpls_labels.mpls_label))+
    #     geom_point(color="gray") +
@@ -175,7 +176,11 @@ plot_rtt <- function(rtt, probe_ttl){
     #     subtitle = paste0(ip_src , ' --> ',ip_dst ) , 
     #     x = "time (s)", y = "reply ttl")    
   
-  return(plot_grid(p1, p2, p3, ncol = 3))
+  p<-plot_grid( p1, plot_grid( p2, p3, nrow = 2, align = "v"), ncol = 2)
+  title <- ggdraw() + draw_label(paste0(ip,"\n probe ttl = ", probe_ttl), fontface='bold')
+
+  
+  return(plot_grid(title, p, ncol=1, rel_heights=c(0.1, 1)))
   #return(plot_grid(p1, p2, ncol = 2))
 }
   
@@ -291,7 +296,7 @@ StablePathDetail
 ```
 
 
-```{r, echo =FALSE, results=FALSE, message=FALSE, warning=FALSE}
+```{r, fig.width = 10, fig.height = 6 , echo =FALSE, results=FALSE, message=FALSE, warning=FALSE, }
 for (probe_ttl in StablePathDetail$probe_ttl ){
 #probe_ttl <- 1
 print(probe_ttl )

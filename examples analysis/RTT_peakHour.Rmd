@@ -47,15 +47,20 @@ rtt_density <- function(rtt_list){
   return(rtt)
 }
 
-get_mplsInfo <- function(ICMPExtensionsInfo){
+get_mplsInfo <- function(ICMPExtensionsInfo, hopInfo){
   mpls_path <- ICMPExtensionsInfo
   mpls_info <- c()
-  for (i in 1: length(mpls_path)){
+  print (length(hopInfo)) 
+  for (i in 1: length(hopInfo)){
+    print(i)
+    print('mplspath')
+    print( mpls_path[[i]][[1]]$Info[3])
     if (is.null(mpls_path[[i]][[1]]$Info[3])) {
       mpls_info <- append (mpls_info,"< NoICMPExtensionMPLS >" )
     } else {
       mpls_info <- append (mpls_info, mpls_path[[i]][[1]]$Info[3])
     }
+    print('finish')
   }
   return(list(mpls_info))
 }
@@ -93,24 +98,26 @@ get_pathStability <- function(paths){
   mb_deletions <- c()
   
   for (i in 1: nrow(paths$start)){
+    print ('i path')
+    print (i)
     if (i==1){
       start <- append(start,paths$start[['sec']][i])
       changing_paths <- append(changing_paths,list(paths$Hops[[i]]['from']$from))
       probe_ttl <-append(probe_ttl,list(paths$Hops[[i]]['hop']$hop))
-      mpls_info <- append(mpls_info, get_mplsInfo(paths$Hops[[i]][['ICMPExtensions']]))
+      mpls_info <- append(mpls_info, get_mplsInfo(paths$Hops[[i]][['ICMPExtensions']],paths$Hops[[i]][['hop']]))
       
       mb_modifications <- append(mb_modifications, get_mbModifications(paths$Hops[[i]][['Modifications']])) 
       #mb_additions <- append(mb_additions, get_mbInfo(paths$Hops[[i]][['Additions']]))
       #mb_deletions <- append(mb_deletions, get_mbInfo(paths$Hops[[i]][['Deletions']]))
       
-    } else if (!all(paths$Hops[[i]][['from']][2:17] == paths$Hops[[i-1]][['from']][2:17]) &&
-               !all(get_mplsInfo(paths$Hops[[i]][['ICMPExtensions']][2:17])[[1]] == get_mplsInfo(paths$Hops[[i-1]][['ICMPExtensions']][2:17])[[1]])
+    } else if (!all(paths$Hops[[i]][['from']][2:length(paths$Hops[[i]][['hop']])] == paths$Hops[[i-1]][['from']][2:length(paths$Hops[[i-1]][['hop']])]) &&
+               !all(get_mplsInfo(paths$Hops[[i]][['ICMPExtensions']],paths$Hops[[i]][['hop']][2:length(paths$Hops[[i]][['hop']])])[[1]] == get_mplsInfo(paths$Hops[[i-1]][['ICMPExtensions']], paths$Hops[[i-1]][['hop']][2:length(paths$Hops[[i-1]][['hop']])])[[1]])
     ){
       finish <- append(finish,paths$start[['sec']][i])
       start <- append(start,paths$start[['sec']][i])
       changing_paths <- append(changing_paths,list(paths$Hops[[i]]['from']$from))
       probe_ttl <-append(probe_ttl,list(paths$Hops[[i]]['hop']$hop))
-      mpls_info <- append(mpls_info, get_mplsInfo(paths$Hops[[i]][['ICMPExtensions']]))
+      mpls_info <- append(mpls_info, get_mplsInfo(paths$Hops[[i]][['ICMPExtensions']],paths$Hops[[i]][['hop']]))
       mb_modifications <- append(mb_modifications, get_mbModifications(paths$Hops[[i]][['Modifications']])) 
       #mb_additions <- append(mb_additions, get_mbInfo(paths$Hops[[i]][['Additions']]))
       #mb_deletions <- append(mb_deletions, get_mbInfo(paths$Hops[[i]][['Deletions']]))
@@ -135,15 +142,22 @@ get_pathStability <- function(paths){
 }
 
 plot_rtt <- function(rtt, probe_ttl){
-  rtt <-  t(apply(rtt, 1, unlist))
-  rtt <-  as.data.frame(rtt,stringsAsFactors = FALSE)
-  rtt$hops.tx.sec <- as.numeric(rtt$hops.tx.sec)
-  rtt$hops.rtt <- as.numeric(rtt$hops.rtt)
-  rtt$hops.reply_ttl <- as.numeric(rtt$hops.reply_ttl)
-  ip <- unique(rtt$hops.addr)
+  rtt <-sapply(rtt$hops, unlist)
+  rtt <- as.data.frame(t(rtt),stringsAsFactors = FALSE)
+  #rtt <-  t(apply(rtt, 1, unlist))
+  #rtt <-  as.data.frame(rtt,stringsAsFactors = FALSE)
+  rtt$tx.sec <- as.numeric(rtt$tx.sec)
+  rtt$rtt <- as.numeric(rtt$rtt)
+  rtt$reply_ttl <- as.numeric(rtt$reply_ttl)
+  ip <- unique(rtt$addr)
   #rtt$hops.icmpext.mpls_labels.mpls_label <- as.numeric(rtt$hops.icmpext.mpls_labels.mpls_label )
   
-  p1 <- ggplot(data=rtt_density(sort(rtt$hops.rtt)) , aes(x=mids, y=counts))+
+  #subset
+  #print('subset')
+  #rtt1 <- subset(rtt, hops.tx.sec - min(hops.tx.sec) <= 17000 )
+  #rtt2 <- subset(rtt, hops.tx.sec - min(hops.tx.sec) > 17000 )
+  
+  p1 <- ggplot(data=rtt_density(sort(rtt$rtt)) , aes(x=mids, y=counts))+
         geom_line(color="gray")+
         scale_y_continuous(name = 'density', trans = log_trans(), breaks = base_breaks()) + 
         scale_x_continuous(name = 'rtt (s)', trans = log_trans(), breaks = base_breaks()) +
@@ -151,16 +165,25 @@ plot_rtt <- function(rtt, probe_ttl){
         theme(axis.text.x = element_text(angle = 90))
         #ggtitle(paste0(ip,"\n probe ttl = ", probe_ttl)) 
     
+   #p1 <- ggplot()+
+  #      geom_line(data=rtt_density(sort(rtt1$hops.rtt)) , aes(x=mids, y=counts), color="blue")+
+  #      geom_line(data=rtt_density(sort(rtt2$hops.rtt)) , aes(x=mids, y=counts), color="red")+
+  #      scale_y_continuous(name = 'density', trans = log_trans(), breaks = base_breaks()) + 
+  #      scale_x_continuous(name = 'rtt (s)', trans = log_trans(), breaks = base_breaks()) +
+  #      theme_gray()+
+  #      theme(axis.text.x = element_text(angle = 90))
+        #ggtitle(paste0(ip,"\n probe ttl = ", probe_ttl)) 
   
-  p2 <- ggplot(data=rtt, aes(x=hops.tx.sec - min(hops.tx.sec), y=hops.rtt))+
+  
+  p2 <- ggplot(data=rtt, aes(x=tx.sec - min(tx.sec), y=rtt))+
         geom_point(color="gray", alpha=0.3) +
-        scale_y_continuous(limits=c(min(rtt$hops.rtt),quantile(rtt$hops.rtt, .98)))+
+        scale_y_continuous(limits=c(min(rtt$rtt),quantile(rtt$rtt, .98)))+
         theme_gray()+
         labs( x = "time (s)", y = "rtt (s)")
         #ggtitle(paste0(ip,"\n probe ttl = ", probe_ttl)) 
     
   
-  p3 <- ggplot(data=rtt, aes(x=hops.tx.sec - min(hops.tx.sec) , y=hops.reply_ttl))+
+  p3 <- ggplot(data=rtt, aes(x=tx.sec - min(tx.sec) , y=reply_ttl))+
         geom_line(color="red") +
         scale_y_continuous() +
         theme_gray()+
@@ -216,7 +239,7 @@ ip_src_dst <- query
 ip_src_dst[[1]]
 
 ip_src <- '"192.168.0.126"'
-ip_dst <- '"200.105.140.66"'
+ip_dst <- '"198.38.124.203"'
 ```
 Destino actual:
 
@@ -306,11 +329,12 @@ q <- paste('{ "src" : ', ip_src,
            ', "start.sec": {"$gt": ', start,
            ', "$lt" : ', finish, '}',
            '}')
-f <- '{ "hops.rtt" : true, "hops.tx.sec":true,  "hops.addr" : 1, "hops.reply_ttl" : 1, "hops.icmpext.mpls_labels.mpls_label" : 1,  "_id" : false}'
+f <- '{ "hops.rtt" : true, "hops.tx.sec":true,  "hops.addr" : true , "hops.reply_ttl" : true ,  "_id" : false}'
 s <- '{"hops.rtt" : 1}'
 
-query <- rttCollection$find ( query = q, fields = f, sort = s )
+query <- rttCollection$find ( query = q, fields = f)
 rtt <- query
+print("rtt")
 if(nrow(rtt) != 0){
   print(plot_rtt(rtt, probe_ttl) )
 }

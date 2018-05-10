@@ -160,7 +160,7 @@ plot_rtt <- function(rtt, probe_ttl){
   p1 <- ggplot(data=rtt_density(sort(rtt$rtt)) , aes(x=mids, y=counts))+
         geom_line(color="gray")+
         scale_y_continuous(name = 'density', trans = log_trans(), breaks = base_breaks()) + 
-        scale_x_continuous(name = 'rtt (s)', trans = log_trans(), breaks = base_breaks()) +
+        scale_x_continuous(name = 'rtt (ms)', trans = log_trans(), breaks = base_breaks()) +
         theme_gray()+
         theme(axis.text.x = element_text(angle = 90))
         #ggtitle(paste0(ip,"\n probe ttl = ", probe_ttl)) 

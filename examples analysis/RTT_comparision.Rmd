@@ -1,9 +1,9 @@
 ---
 title: "Analisis de RTT"
 output:
-  pdf_document: default
   html_document:
     df_print: paged
+  pdf_document: default
 ---
 
 
@@ -143,14 +143,14 @@ get_pathStability <- function(paths){
   paths_stability_df$hops <- changing_paths
   paths_stability_df$mplsInfo <- mpls_info
   paths_stability_df$mbModifications <- mb_modifications
-  paths_stability_df$dateStart <- as.POSIXlt(dateStart) - 3600*3
-  paths_stability_df$dateFinish <- as.POSIXlt(dateFinish) - 3600*3
+  paths_stability_df$dateStart <- as.POSIXlt(strptime(dateStart, '%m/%d/%y %H:%M:%S'))- 3600*3
+  paths_stability_df$dateFinish <- as.POSIXlt(strptime(dateFinish, '%m/%d/%y %H:%M:%S')) - 3600*3
   #paths_stability_df$mbAdditions <- mb_additions
   #paths_stability_df$mbDeletions <- mb_deletions
   return(paths_stability_df)
 }
 
-plot_comparision_rtt <- function(RTT){
+plot_comparision_rtt <- function(RTT, date_str){
   rtt <-sapply(RTT$hops, unlist)
   rtt <- as.data.frame(t(rtt),stringsAsFactors = FALSE)
   #rtt <-  t(apply(rtt, 1, unlist))
@@ -159,7 +159,7 @@ plot_comparision_rtt <- function(RTT){
   rtt$rtt <- as.numeric(rtt$rtt)
   rtt$reply_ttl <- as.numeric(rtt$reply_ttl)
   rtt$probe_ttl <- as.numeric(rtt$probe_ttl )
-  rtt$ftime <- as.POSIXlt(RTT$start$ftime) - 3600*3
+  rtt$ftime <- as.POSIXlt(strptime(RTT$start$ftime, '%Y-%m-%d %H:%M:%S')) - 3600*3
   
   #rtt <- subset (rtt, rtt <= quantile(rtt, .99))
   ip <- unique(rtt$addr)
@@ -168,8 +168,10 @@ plot_comparision_rtt <- function(RTT){
   #subset
   #print('subset')
   
-  rtt1 <- subset(rtt, ftime <= as.POSIXlt("2018-05-03 03:59:56") )
-  rtt2 <- subset(rtt, ftime > as.POSIXlt("2018-05-03 03:59:56") )
+  rtt1 <- subset(rtt, ftime <= as.POSIXlt(strptime(date_str, "%Y-%m-%d %H:%M:%S")))
+  rtt2 <- subset(rtt, ftime > as.POSIXlt(strptime(date_str, "%Y-%m-%d %H:%M:%S")))
+  #View(rtt1)
+  
   
   p1 <- ggplot()+
   geom_line(data=rtt_density(sort(rtt1$rtt)) , aes(x=mids, y=counts), color="blue")+
@@ -230,11 +232,85 @@ rttCollection <-  mongo( collection = 'rtt',
 )
 ```
 
+
+```{r, echo =FALSE, results=FALSE, message=FALSE, warning=FALSE}
+plot_comparision_rtt2 <- function(RTT, date_str1, date_str2 ){
+  rtt <-sapply(RTT$hops, unlist)
+  rtt <- as.data.frame(t(rtt),stringsAsFactors = FALSE)
+  #rtt <-  t(apply(rtt, 1, unlist))
+  #rtt <-  as.data.frame(rtt,stringsAsFactors = FALSE)
+  rtt$tx.sec <- as.numeric(rtt$tx.sec)
+  rtt$rtt <- as.numeric(rtt$rtt)
+  rtt$reply_ttl <- as.numeric(rtt$reply_ttl)
+  rtt$probe_ttl <- as.numeric(rtt$probe_ttl )
+  rtt$ftime <- as.POSIXlt(strptime(RTT$start$ftime, '%Y-%m-%d %H:%M:%S')) - 3600*3
+  
+  #rtt <- subset (rtt, rtt <= quantile(rtt, .99))
+  ip <- unique(rtt$addr)
+  #rtt$hops.icmpext.mpls_labels.mpls_label <- as.numeric(rtt$hops.icmpext.mpls_labels.mpls_label )
+  
+  #subset
+  #print('subset')
+  
+  rtt1 <- subset(rtt, ftime <= as.POSIXlt(strptime(date_str1, "%Y-%m-%d %H:%M:%S")))
+  rtt2 <- subset(rtt, ftime > as.POSIXlt(strptime(date_str1, "%Y-%m-%d %H:%M:%S")) & ftime < as.POSIXlt(strptime(date_str2, "%Y-%m-%d %H:%M:%S")))
+  rtt3 <- subset(rtt, ftime > as.POSIXlt(strptime(date_str2, "%Y-%m-%d %H:%M:%S")))
+  
+  #View(rtt1)
+  
+  
+  p1 <- ggplot()+
+  geom_line(data=rtt_density(sort(rtt1$rtt)) , aes(x=mids, y=counts), color="blue")+
+  geom_line(data=rtt_density(sort(rtt2$rtt)) , aes(x=mids, y=counts), color="red")+
+  geom_line(data=rtt_density(sort(rtt3$rtt)) , aes(x=mids, y=counts), color="orange")+  
+  scale_y_continuous(name = 'density', trans = log_trans(), breaks = base_breaks()) + 
+  scale_x_continuous(name = 'rtt (s)', trans = log_trans(), breaks = base_breaks()) +
+  theme_gray()+
+  theme(axis.text.x = element_text(angle = 90))
+  #ggtitle(paste0(ip,"\n probe ttl = ", probe_ttl)) 
+  
+  p2 <- ggplot()+
+  geom_point(data= subset (rtt1, rtt <= quantile(rtt, .99)), aes(x=ftime, y=rtt), color="blue", alpha=0.3) +
+  geom_point(data= subset (rtt2, rtt <= quantile(rtt, .99)), aes(x=ftime, y=rtt), color="red", alpha=0.3) + 
+  geom_point(data= subset (rtt3, rtt <= quantile(rtt, .99)), aes(x=ftime, y=rtt), color="orange", alpha=0.3) + 
+  scale_x_datetime()+
+  scale_y_continuous(limits=c(min(rtt$rtt),quantile(rtt$rtt, .99)))+
+  theme_gray()+
+  labs( x = "time (s)", y = "rtt (s)")
+  #ggtitle(paste0(ip,"\n probe ttl = ", probe_ttl)) 
+
+
+  p3 <- ggplot()+
+  geom_line(data= rtt1, aes(x=ftime, y=reply_ttl), color="blue") +
+  geom_line(data= rtt2, aes(x=ftime, y=reply_ttl), color="red") + 
+  geom_line(data= rtt3, aes(x=ftime, y=reply_ttl), color="orange") + 
+  scale_x_datetime()+
+  theme_gray()+
+  labs( x = "time (s)", y = "reply ttl")
+  #ggtitle(paste0(ip,"\n probe ttl = ", probe_ttl)) 
+  
+  p4 <- ggplot()+
+  geom_line(data= rtt1, aes(x=ftime, y=probe_ttl), color="blue") +
+  geom_line(data= rtt2, aes(x=ftime, y=probe_ttl), color="red") + 
+  geom_line(data= rtt3, aes(x=ftime, y=probe_ttl), color="orange") + 
+  scale_x_datetime()+
+  theme_gray()+
+  labs( x = "time (s)", y = "probe ttl")
+  #ggtitle(paste0(ip,"\n probe ttl = ", probe_ttl)) 
+      
+  p<-plot_grid( p1, plot_grid( p2, p3, p4, nrow = 3, align = "v"), ncol = 2)
+  title <- ggdraw() + draw_label(paste0(ip), fontface='bold')
+
+  return(plot_grid(title, p, ncol=1, rel_heights=c(0.1, 1)))
+  #return(plot_grid(p1, p2, ncol = 2))
+
+}
+```
+
+
 # Origen destino de la exploracion
 
-Destinos disponibles:
-
-```{r, echo =FALSE, message=FALSE, warning=FALSE}
+```{r, echo =FALSE, results=FALSE, message=FALSE, warning=FALSE}
 
 # ---- mongoDB query: ALL IPsrc and IPdst List ----
 query <- pathCollection$aggregate('[
@@ -254,6 +330,10 @@ Destino actual:
 * IP destination: `r ip_dst`
 
 # Paths descubiertos entre origen destino
+
+* DateStart: Fecha y Hora en que el path (constante) fue descubierto por primera vez
+* DateStart: Fecha y hora en la que finaliza el Path
+* Duration: Duración del Path Estable en segundos
 
 ```{r, echo =FALSE, results=TRUE, message=FALSE, warning=FALSE, rows.print=15}
 
@@ -290,10 +370,12 @@ for (path in 1:nrow(pathStability)){
 
 ```{r, echo =FALSE, results=FALSE, message=FALSE, warning=FALSE}
 #probe_ttl <- 15
-addr <- '"213.140.53.76"'
+addr <- '"200.89.160.33"'
 ```
 
-# probabilidad de densidad RTT para IP `r addr` 
+# Densidad de probabilidad RTT 
+
+## IP `r addr` 
 
 ```{r, fig.width = 10, fig.height = 6 , echo =FALSE, results=FALSE, message=FALSE, warning=FALSE, }
 q <- paste('{ "src" : ', ip_src, 
@@ -308,8 +390,242 @@ query <- rttCollection$find ( query = q, fields = f)
 rtt <- query
 #print("rtt")
 if(nrow(rtt) != 0){
-  print(plot_comparision_rtt(rtt) )
+  print(plot_comparision_rtt(rtt, "2018-05-03 03:59:56") )
+}
+```
+
+```{r, echo =FALSE, results=FALSE, message=FALSE, warning=FALSE}
+addr <- '"200.89.165.250"'
+```
+
+
+## IP `r addr` 
+
+```{r, fig.width = 10, fig.height = 6 , echo =FALSE, results=FALSE, message=FALSE, warning=FALSE, }
+q <- paste('{ "src" : ', ip_src, 
+           ', "dst" : ', ip_dst,  
+           #', "hops.probe_ttl" : ',  probe_ttl, 
+           ', "hops.addr" : ',  addr,
+           '}')
+f <- '{ "hops.rtt" : true, "hops.tx.sec":true, "hops.probe_ttl" : true,  "hops.addr" : true , "hops.reply_ttl" : true , "start.ftime": true , "_id" : false}'
+s <- '{"hops.rtt" : 1}'
+
+query <- rttCollection$find ( query = q, fields = f)
+rtt <- query
+#print("rtt")
+if(nrow(rtt) != 0){
+  print(plot_comparision_rtt(rtt, "2018-05-03 03:59:56") )
+  print(plot_comparision_rtt(rtt, "2018-05-03 01:09:40") )
 }
 ```
 
 
+```{r, echo =FALSE, results=FALSE, message=FALSE, warning=FALSE}
+addr <- '"185.70.203.32"'
+```
+
+
+## IP `r addr` 
+
+```{r, fig.width = 10, fig.height = 6 , echo =FALSE, results=FALSE, message=FALSE, warning=FALSE, }
+q <- paste('{ "src" : ', ip_src, 
+           ', "dst" : ', ip_dst,  
+           #', "hops.probe_ttl" : ',  probe_ttl, 
+           ', "hops.addr" : ',  addr,
+           '}')
+f <- '{ "hops.rtt" : true, "hops.tx.sec":true, "hops.probe_ttl" : true,  "hops.addr" : true , "hops.reply_ttl" : true , "start.ftime": true , "_id" : false}'
+s <- '{"hops.rtt" : 1}'
+
+query <- rttCollection$find ( query = q, fields = f)
+rtt <- query
+#print("rtt")
+if(nrow(rtt) != 0){
+  print(plot_comparision_rtt(rtt, "2018-05-03 03:59:56") )
+  print(plot_comparision_rtt2(rtt, "2018-05-03 01:09:40", "2018-05-03 02:14:49") )
+
+}
+```
+
+
+
+```{r, echo =FALSE, results=FALSE, message=FALSE, warning=FALSE}
+addr <- '"213.140.53.76"'
+```
+
+
+## IP `r addr` 
+
+```{r, fig.width = 10, fig.height = 6 , echo =FALSE, results=FALSE, message=FALSE, warning=FALSE, }
+q <- paste('{ "src" : ', ip_src, 
+           ', "dst" : ', ip_dst,  
+           #', "hops.probe_ttl" : ',  probe_ttl, 
+           ', "hops.addr" : ',  addr,
+           '}')
+f <- '{ "hops.rtt" : true, "hops.tx.sec":true, "hops.probe_ttl" : true,  "hops.addr" : true , "hops.reply_ttl" : true , "start.ftime": true , "_id" : false}'
+s <- '{"hops.rtt" : 1}'
+
+query <- rttCollection$find ( query = q, fields = f)
+rtt <- query
+#print("rtt")
+if(nrow(rtt) != 0){
+  print(plot_comparision_rtt(rtt, "2018-05-03 03:59:56") )
+  print(plot_comparision_rtt2(rtt, "2018-05-03 01:09:40", "2018-05-03 02:14:49") )
+
+}
+```
+
+```{r, echo =FALSE, results=FALSE, message=FALSE, warning=FALSE}
+addr <- '"176.52.255.29"'
+```
+
+
+## IP `r addr` 
+
+```{r, fig.width = 10, fig.height = 6 , echo =FALSE, results=FALSE, message=FALSE, warning=FALSE, }
+q <- paste('{ "src" : ', ip_src, 
+           ', "dst" : ', ip_dst,  
+           #', "hops.probe_ttl" : ',  probe_ttl, 
+           ', "hops.addr" : ',  addr,
+           '}')
+f <- '{ "hops.rtt" : true, "hops.tx.sec":true, "hops.probe_ttl" : true,  "hops.addr" : true , "hops.reply_ttl" : true , "start.ftime": true , "_id" : false}'
+s <- '{"hops.rtt" : 1}'
+
+query <- rttCollection$find ( query = q, fields = f)
+rtt <- query
+#print("rtt")
+if(nrow(rtt) != 0){
+  print(plot_comparision_rtt(rtt, "2018-05-03 03:59:56") )
+  print(plot_comparision_rtt2(rtt, "2018-05-03 01:09:40", "2018-05-03 02:14:49") )
+
+}
+```
+
+```{r, echo =FALSE, results=FALSE, message=FALSE, warning=FALSE}
+addr <- '"176.52.248.55"'
+```
+
+
+## IP `r addr` 
+
+```{r, fig.width = 10, fig.height = 6 , echo =FALSE, results=FALSE, message=FALSE, warning=FALSE, }
+q <- paste('{ "src" : ', ip_src, 
+           ', "dst" : ', ip_dst,  
+           #', "hops.probe_ttl" : ',  probe_ttl, 
+           ', "hops.addr" : ',  addr,
+           '}')
+f <- '{ "hops.rtt" : true, "hops.tx.sec":true, "hops.probe_ttl" : true,  "hops.addr" : true , "hops.reply_ttl" : true , "start.ftime": true , "_id" : false}'
+s <- '{"hops.rtt" : 1}'
+
+query <- rttCollection$find ( query = q, fields = f)
+rtt <- query
+#print("rtt")
+if(nrow(rtt) != 0){
+  print(plot_comparision_rtt(rtt, "2018-05-03 03:59:56") )
+  print(plot_comparision_rtt2(rtt, "2018-05-03 01:09:40", "2018-05-03 02:14:49") )
+
+}
+```
+
+```{r, echo =FALSE, results=FALSE, message=FALSE, warning=FALSE}
+addr <- '"213.140.43.140"'
+```
+
+
+## IP `r addr` 
+
+```{r, fig.width = 10, fig.height = 6 , echo =FALSE, results=FALSE, message=FALSE, warning=FALSE, }
+q <- paste('{ "src" : ', ip_src, 
+           ', "dst" : ', ip_dst,  
+           #', "hops.probe_ttl" : ',  probe_ttl, 
+           ', "hops.addr" : ',  addr,
+           '}')
+f <- '{ "hops.rtt" : true, "hops.tx.sec":true, "hops.probe_ttl" : true,  "hops.addr" : true , "hops.reply_ttl" : true , "start.ftime": true , "_id" : false}'
+s <- '{"hops.rtt" : 1}'
+
+query <- rttCollection$find ( query = q, fields = f)
+rtt <- query
+#print("rtt")
+if(nrow(rtt) != 0){
+  print(plot_comparision_rtt(rtt, "2018-05-03 03:59:56") )
+  print(plot_comparision_rtt2(rtt, "2018-05-03 01:09:40", "2018-05-03 02:14:49") )
+
+}
+```
+
+```{r, echo =FALSE, results=FALSE, message=FALSE, warning=FALSE}
+addr <- '"84.16.9.103"'
+```
+
+
+## IP `r addr` 
+
+```{r, fig.width = 10, fig.height = 6 , echo =FALSE, results=FALSE, message=FALSE, warning=FALSE, }
+q <- paste('{ "src" : ', ip_src, 
+           ', "dst" : ', ip_dst,  
+           #', "hops.probe_ttl" : ',  probe_ttl, 
+           ', "hops.addr" : ',  addr,
+           '}')
+f <- '{ "hops.rtt" : true, "hops.tx.sec":true, "hops.probe_ttl" : true,  "hops.addr" : true , "hops.reply_ttl" : true , "start.ftime": true , "_id" : false}'
+s <- '{"hops.rtt" : 1}'
+
+query <- rttCollection$find ( query = q, fields = f)
+rtt <- query
+#print("rtt")
+if(nrow(rtt) != 0){
+  print(plot_comparision_rtt(rtt, "2018-05-03 03:59:56") )
+  print(plot_comparision_rtt2(rtt, "2018-05-03 01:09:40", "2018-05-03 02:14:49") )
+
+}
+```
+
+```{r, echo =FALSE, results=FALSE, message=FALSE, warning=FALSE}
+addr <- '"200.105.135.42"'
+```
+
+
+## IP `r addr` 
+
+```{r, fig.width = 10, fig.height = 6 , echo =FALSE, results=FALSE, message=FALSE, warning=FALSE, }
+q <- paste('{ "src" : ', ip_src, 
+           ', "dst" : ', ip_dst,  
+           #', "hops.probe_ttl" : ',  probe_ttl, 
+           ', "hops.addr" : ',  addr,
+           '}')
+f <- '{ "hops.rtt" : true, "hops.tx.sec":true, "hops.probe_ttl" : true,  "hops.addr" : true , "hops.reply_ttl" : true , "start.ftime": true , "_id" : false}'
+s <- '{"hops.rtt" : 1}'
+
+query <- rttCollection$find ( query = q, fields = f)
+rtt <- query
+#print("rtt")
+if(nrow(rtt) != 0){
+  print(plot_comparision_rtt(rtt, "2018-05-03 03:59:56") )
+  print(plot_comparision_rtt2(rtt, "2018-05-03 01:09:40", "2018-05-03 02:14:49") )
+
+}
+```
+
+```{r, echo =FALSE, results=FALSE, message=FALSE, warning=FALSE}
+addr <- '"200.105.135.130"'
+```
+
+
+## IP `r addr` 
+
+```{r, fig.width = 10, fig.height = 6 , echo =FALSE, results=FALSE, message=FALSE, warning=FALSE, }
+q <- paste('{ "src" : ', ip_src, 
+           ', "dst" : ', ip_dst,  
+           #', "hops.probe_ttl" : ',  probe_ttl, 
+           ', "hops.addr" : ',  addr,
+           '}')
+f <- '{ "hops.rtt" : true, "hops.tx.sec":true, "hops.probe_ttl" : true,  "hops.addr" : true , "hops.reply_ttl" : true , "start.ftime": true , "_id" : false}'
+s <- '{"hops.rtt" : 1}'
+
+query <- rttCollection$find ( query = q, fields = f)
+rtt <- query
+#print("rtt")
+if(nrow(rtt) != 0){
+  print(plot_comparision_rtt(rtt, "2018-05-03 03:59:56") )
+  print(plot_comparision_rtt2(rtt, "2018-05-03 01:09:40", "2018-05-03 02:14:49") )
+
+}
+```

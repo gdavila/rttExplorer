@@ -207,7 +207,8 @@ if __name__ == '__main__':
         
         uri_mongodb=mongo.uri
         client = pymongo.MongoClient(uri_mongodb)
-        db = client.conexdat
+        db = client.rttExploration
+        
         collection = db.rtt
     
         logger.info("<MongoDB> Uploading rtt data...")

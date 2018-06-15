@@ -6,5 +6,6 @@ Created on Thu Feb  8 23:41:49 2018
 @author: ferdavi6
 """
 
-password = '1405871'
-uri = 'mongodb://conexdat:'+password+'@ds163656.mlab.com:63656/conexdat'
+user = 'rttExplorer'
+password = 'rttExplorer'
+uri = 'mongodb://' + user + ':' + password + '@localhost:12345/rttExploration'

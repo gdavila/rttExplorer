@@ -69,6 +69,7 @@ class tracebox():
     def _buildProbe(self):
         self.buildedProbe = ' / '.join([self.probe.ip.getPckt(),
                                       self.probe.protocol.getPckt(),
+                                      self.probe.raw.getPckt(),
                                         ])
         #self.buildedProbe = '\"' + self.buildedProbe + '\"'
         return 
@@ -121,7 +122,7 @@ class tracebox():
                                   tracebox.verbose,
                                   self.IPtarget, ])
         
-        #print( self.command)
+        print( self.command)
         
         process = Popen(self.cmdList, stdout=PIPE, stderr=PIPE)
         t= time.time()
@@ -146,6 +147,7 @@ class protocol():
     def __init__(self, protocol):
         self.protocol = protocol()
         self.ip = ip()
+        self.raw = raw()
         
     @classmethod
     def udp(cls):
@@ -154,8 +156,23 @@ class protocol():
     @classmethod
     def tcp(cls):
         return cls(tcp)
+    
+    @classmethod
+    def raw(cls):
+        return cls(raw)
 
-
+class raw:
+    layerId = 'raw'
+    def __init__(self):
+        self.payload = "'this is payload'"
+        
+    def getPckt(self):
+        return ' '.join([ raw.layerId,
+                         '{',
+                          self.payload,
+                          '}',])
+    
+    
 class udp:
     layerId = 'udp'
     def __init__(self):

@@ -176,7 +176,7 @@ if __name__ == '__main__':
         t.start()
      
         
-    timed_join_all(jobs, (explorationTime + 10 )* 60  )
+    timed_join_all(jobs, (explorationTime + 5 )* 60  )
     
     for job in jobs:
         if job.is_alive(): 

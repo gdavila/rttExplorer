@@ -17,8 +17,8 @@
 
 	```
 	wget https://www.caida.org/tools/measurement/scamper/code/scamper-cvs-20180504.tar.gz
-	tar -xzf scamper-cvs-20171204.tar.gz
-	cd scamper-cvs-20171204/
+	tar -xzf scamper-cvs-20180504.tar.gz
+	cd scamper-cvs-20180504/
 	sudo ./configure
 	sudo make
 	sudo make install 

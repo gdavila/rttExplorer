@@ -122,7 +122,7 @@ class tracebox():
                                   tracebox.verbose,
                                   self.IPtarget, ])
         
-        print( self.command)
+        #print( self.command)
         
         process = Popen(self.cmdList, stdout=PIPE, stderr=PIPE)
         t= time.time()

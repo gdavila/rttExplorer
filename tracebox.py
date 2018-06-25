@@ -82,6 +82,10 @@ class tracebox():
             self.probe = protocol.tcp()
             self.probe.protocol.flags= str(16)
             
+        if self.methodValue == 'TCP':
+            self.probe = protocol.tcp()
+            self.probe.protocol.flags= str(2)            
+            
         if self.methodValue == 'UDP':
             self.probe = protocol.udp()
         

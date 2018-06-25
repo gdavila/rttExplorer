@@ -67,10 +67,15 @@ class tracebox():
         self.dport(defaults.tracebox.dport)
         
     def _buildProbe(self):
-        self.buildedProbe = ' / '.join([self.probe.ip.getPckt(),
-                                      self.probe.protocol.getPckt(),
-                                      self.probe.raw.getPckt(),
-                                        ])
+        if self.methodValue == 'UDP':
+            self.buildedProbe = ' / '.join([self.probe.ip.getPckt(),
+                                          self.probe.protocol.getPckt(),
+                                          self.probe.raw.getPckt(),
+                                            ])
+        else:
+            self.buildedProbe = ' / '.join([self.probe.ip.getPckt(),
+                              self.probe.protocol.getPckt(),
+                                ])
         #self.buildedProbe = '\"' + self.buildedProbe + '\"'
         return 
     

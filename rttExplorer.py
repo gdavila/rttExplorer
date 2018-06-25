@@ -34,7 +34,7 @@ def get_args():
     parserOPt = parser.add_argument_group('optional arguments:')
     parserOPt.add_argument('-D', metavar = 'pathInterval', help = 'time interval between path discovery probes (minutes). Default is 5',type = int, default = 5)
     parserOPt.add_argument('-T', metavar = 'rttInterval', help = 'time interval between rtt measurement probes (seconds). Decimals allowed. Default is 1.0', type = float, default = 1)
-    parserOPt.add_argument('-m', metavar = 'method', type = str, help = 'UDP, TCP (syn) or TCP-ACK. Default is UDP', choices =  ['UDP', 'TCP-ACK'], default = defaults.exploration.method)
+    parserOPt.add_argument('-m', metavar = 'method', type = str, help = 'UDP, TCP (syn) or TCP-ACK. Default is UDP', choices =  ['UDP', 'TCP-ACK', 'TCP'], default = defaults.exploration.method)
     parserOPt.add_argument('-f', metavar = 'firstTTL', type = str, help = 'ttl for the first hop used in traceroute. Default is 1', default = '1')
     parserOPt.add_argument('-M', metavar = 'maxTTL', type = str, help = 'max ttl used in traceroute. Default is 20', default = '20')
     parserOPt.add_argument('-d', metavar = 'dstPort',type = str, help = 'destination Port. Default is 44444', default = defaults.exploration.dport)

@@ -58,9 +58,9 @@ print("<MongoDB> Start Uploading data")
 
 rttFile = 'results/rtt_raspberrypi.json'
 pathFile = 'results/path_raspberrypi.json'
-uri_mongodb='mongodb://conexdat:1405871@ds163656.mlab.com:63656/conexdat'
+uri_mongodb='mongodb://rttExplorer:rttExplorer@localhost:12345/rttExploration'
 client = pymongo.MongoClient(uri_mongodb)
-db = client.conexdat
+db = client.rttExploration
 collection = db.rtt
 
 print("<MongoDB> Uploading rtt data...")

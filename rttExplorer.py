@@ -12,14 +12,14 @@ CoNexDat
 import argparse
 import exploration
 import defaults
-import threading
+import multiprocessing
 import time
 import pymongo, mongo
 import json
 import os
 import logging
 import socket 
-
+    
 
 def get_args():
     '''This function parses and return arguments passed in'''
@@ -96,13 +96,13 @@ def uploadColletion(collection, srcFile):
 
 
 def timed_join_all(jobs, timeout):
-    start = cur_time = time.time()
-    while cur_time <= (start + timeout):
+    start = time.time()
+    while time.time() <= (start + timeout):
         for job in jobs:
             if not job.is_alive():
                 job.join()
         time.sleep(1)
-        cur_time = time.time()
+
 
 if __name__ == '__main__':
     
@@ -157,8 +157,8 @@ if __name__ == '__main__':
         except Exception as e:
             logger.info("<MongoDB> "+ target +" " + str(e))
             continue
-        
-        t = threading.Thread(target = rttExplorer, name = host, args = (host, 
+        #multiprocessing.Process, StoppableThread
+        t = multiprocessing.Process(target = rttExplorer, name = host, args = (host, 
                                                          srcPort , 
                                                          dstPort, 
                                                          method,
@@ -170,19 +170,17 @@ if __name__ == '__main__':
                                                          maxTTL,
                                                          rttTimeout,
                                                          pathTimeout))
-        
         jobs.append(t)
         time.sleep(1)
         t.start()
-     
-        
-    timed_join_all(jobs, (explorationTime + 5 )* 60  )
+
+         
+    timed_join_all(jobs, (explorationTime + 1 )* 60 )
     
     for job in jobs:
         if job.is_alive(): 
             logger.info("<rttExplorer>  Timeout in job thread: " + job.getName())
-            job.kill()
-        time.sleep(1)
+            job.terminate()
         
     #for job in jobs:
     #    job.join(explorationTime*60 + 600)

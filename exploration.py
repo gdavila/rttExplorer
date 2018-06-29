@@ -17,6 +17,7 @@ import socket
 import time
 import os
 import logging
+import multiprocessing
 
 def tbFormater(tb):
     
@@ -47,8 +48,9 @@ class explorationError(Exception):
     """scamper base error"""
     
 class exploration():
-    ID = 0
-    offsetSrcPort = 0
+    ID = multiprocessing.Value('i', 0)
+    offsetSrcPort = multiprocessing.Value('i', 0)
+    lock = multiprocessing.Lock()
     
     def __init__(self, 
                  TARGET, 
@@ -64,10 +66,12 @@ class exploration():
                  RTT_TIMEOUT,
                  PATH_TIMEOUT):
         
-        #print ("<Exploration ID{} >".format(exploration.ID))
-        self.ID = exploration.ID
+        #print ("<Exploration ID{} >".format(exploration.ID.value))
+        
+        self.ID = exploration.ID.value
+        self.sport =  str(int(SPORT) + exploration.ID.value + exploration.offsetSrcPort.value)
+        
         self.target = TARGET
-        self.sport =  str(int(SPORT) + exploration.ID + exploration.offsetSrcPort)
         self.checkSrcPort()
         self.dport = DPORT
         self.method =  METHOD
@@ -89,7 +93,11 @@ class exploration():
         self.iniLogger()
         self.rttMeasError = False
         self.pathDiscError = False
-        exploration.ID += 1
+        
+        exploration.lock.acquire()
+        exploration.ID.value += 1
+        exploration.lock.release()
+
     
     def iniLogger(self):
         logging.basicConfig(level=logging.INFO, 
@@ -99,7 +107,7 @@ class exploration():
         self.logger.info("<Exploration ID{}> ".format(self.ID) +  "  {} ".format(self.target)  + " START")
         
     def iniFile(self):
-        if exploration.ID == 0: 
+        if exploration.ID.value == 0: 
             try: os.remove(self.rttFileName) 
             except FileNotFoundError:pass
             try: os.remove(self.pathFileName) 
@@ -121,9 +129,11 @@ class exploration():
 
     def checkSrcPort(self):
         while self.SrcPortBussy():
-            exploration.offsetSrcPort+=1
+            exploration.lock.acquire()
+            exploration.offsetSrcPort.value+=1
+            exploration.lock.release()
             self.logger.error("<Exploration ID{}> ".format(self.ID) + '[SrcPortBussy] '+ self.sport)
-            self.sport = str(int(self.sport) + exploration.offsetSrcPort)
+            self.sport = str(int(self.sport) + exploration.offsetSrcPort.value)
             
     def pathDiscovery(self):
         self.tb = tracebox.tracebox(self.target)

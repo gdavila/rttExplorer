@@ -1,3 +1,2 @@
-187.102.77.237
-ipv4-c010-eze002-prima-isp.1.oca.nflxvideo.net
-ipv4-c018-gru001-ix.1.oca.nflxvideo.net
+104.25.238.112
+104.25.237.112

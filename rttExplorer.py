@@ -179,7 +179,7 @@ if __name__ == '__main__':
     
     for job in jobs:
         if job.is_alive(): 
-            logger.info("<rttExplorer>  Timeout in job thread: " + job.getName())
+            logger.info("<rttExplorer>  Timeout in job thread: " + job.name())
             job.terminate()
         
     #for job in jobs:
